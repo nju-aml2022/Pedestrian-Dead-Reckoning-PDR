@@ -1,0 +1,15 @@
+name: pdr
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - pandas
+  - geopy
+  - pytorch=1.10.2
+  - ipykernel
+  - python=3.9
+  - pip
