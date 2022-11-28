@@ -86,18 +86,18 @@ class TestCase:
                     self.time, time_data, np.array(self.pd_magnetometer[self.pd_magnetometer.columns[1:4]]))
 
             # 4. 保存 preprocessed.csv, 每一列分别为 "t", "a", "la", "gs", "m"
-            data = np.concatenate((self.time.reshape(-1, 1), self._a, self._la, self._gs, self._m), axis=1)
-            pd.DataFrame(data).to_csv(os.path.join(self.test_case_path, "preprocessed.csv"), index=False, header=[
+            self.preprocessed_data = np.concatenate((self.time.reshape(-1, 1), self._a, self._la, self._gs, self._m), axis=1)
+            pd.DataFrame(self.preprocessed_data).to_csv(os.path.join(self.test_case_path, "preprocessed.csv"), index=False, header=[
                 "t", "a_x", "a_y", "a_z", "la_x", "la_y", "la_z", "gs_x", "gs_y", "gs_z", "m_x", "m_y", "m_z"])
 
         # 5. 如果存在 preprocessed.csv 文件，则直接读取
         else:
-            data = pd.read_csv(os.path.join(self.test_case_path, "preprocessed.csv"))
-            self.time = np.array(data[data.columns[0]])
-            self._a = np.array(data[data.columns[1:4]])
-            self._la = np.array(data[data.columns[4:7]])
-            self._gs = np.array(data[data.columns[7:10]])
-            self._m = np.array(data[data.columns[10:13]])
+            self.preprocessed_data = np.array(pd.read_csv(os.path.join(self.test_case_path, "preprocessed.csv")))
+            self.time = self.preprocessed_data[:, 0]
+            self._a = self.preprocessed_data[:, 1:4]
+            self._la = self.preprocessed_data[:, 4:7]
+            self._gs = self.preprocessed_data[:, 7:10]
+            self._m = self.preprocessed_data[:, 10:13]
 
         # 6. 为 a, la, gs, m 扩充成 a_x, a_y, a_z, la_x, la_y, la_z, gs_x, gs_y, gs_z, m_x, m_y, m_z
         self._a_x = self._a[:, 0]
