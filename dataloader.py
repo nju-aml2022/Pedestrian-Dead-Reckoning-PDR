@@ -35,9 +35,9 @@ class TestCase:
         self.have_location_output = os.path.exists(os.path.join(self.test_case_path, "Location_output.csv"))
         if self.have_location_output:
             self.pd_location_output = pd.read_csv(os.path.join(self.test_case_path, "Location_output.csv"))
-        # 存在 Location 则加载, self.have_location_pred 用来判断是否有 Location
-        self.have_location_pred = os.path.exists(os.path.join(self.test_case_path, "Location.csv"))
-        if self.have_location_pred:
+        # 存在 Location 则加载, self.have_location_valid 用来判断是否有 Location
+        self.have_location_valid = os.path.exists(os.path.join(self.test_case_path, "Location.csv"))
+        if self.have_location_valid:
             self.pd_location = pd.read_csv(os.path.join(self.test_case_path, "Location.csv"))
 
 
@@ -139,18 +139,18 @@ class TestCase:
         self._y = (self._longitude - self._origin[1]) * self._K
 
         # 10. 对 Location 进行相同的处理
-        if self.have_location_pred:
-            self._location_pred = np.array(
+        if self.have_location_valid:
+            self._location_valid = np.array(
                 self.pd_location[self.pd_location.columns[1:]])
-            self._latitude_pred = self._location_pred[:, 0]
-            self._longitude_pred = self._location_pred[:, 1]
-            self._height_pred = self._location_pred[:, 2]
-            self._velocity_pred = self._location_pred[:, 3]
-            self._direction_pred = self._location_pred[:, 4]
-            self._horizontal_accuracy_pred = self._location_pred[:, 5]
-            self._vertical_accuracy_pred = self._location_pred[:, 6]
-            self._x_pred = (self._latitude_pred - self._origin[0]) * self._K
-            self._y_pred = (self._longitude_pred - self._origin[1]) * self._K
+            self._latitude_valid = self._location_valid[:, 0]
+            self._longitude_valid = self._location_valid[:, 1]
+            self._height_valid = self._location_valid[:, 2]
+            self._velocity_valid = self._location_valid[:, 3]
+            self._direction_valid = self._location_valid[:, 4]
+            self._horizontal_accuracy_valid = self._location_valid[:, 5]
+            self._vertical_accuracy_valid = self._location_valid[:, 6]
+            self._x_valid = (self._latitude_valid - self._origin[0]) * self._K
+            self._y_valid = (self._longitude_valid - self._origin[1]) * self._K
         
         # 11. 对 Location_output 进行相同的处理
         if self.have_location_output:
@@ -168,15 +168,15 @@ class TestCase:
 
 
     # 画路线图
-    def draw_route(self, number_of_arrows=25, draw_type="input", x=None, y=None, direction=None):
+    def draw_route(self, number_of_arrows=25, draw_type="valid", x=None, y=None, direction=None):
         if x and y and direction:
             _x = x
             _y = y
             _direction = direction
-        elif draw_type == "input" and self.have_location_pred:
-            _x = self._x_pred
-            _y = self._y_pred
-            _direction = self._direction_pred
+        elif draw_type == "valid" and self.have_location_valid:
+            _x = self._x_valid
+            _y = self._y_valid
+            _direction = self._direction_valid
         elif draw_type == "output" and self.have_location_output:
             _x = self._x_output
             _y = self._y_output
@@ -197,13 +197,18 @@ class TestCase:
             dx, dy = length * np.cos(angle), length * np.sin(angle)
             plt.arrow(_x[i], _y[i], dx, dy, head_width=5, head_length=5, fc='r', ec='r')
 
-        # plt.plot(pred_x, pred_y, '.', label="prediction")
         plt.xlabel('latitude')
         plt.ylabel('longitude')
         plt.show()
 
         
     def eval_model(self):
+        if not self.have_location_output:
+            print("No location output")
+            return
+        if not self.have_location_valid:
+            print("No location valid")
+            return
         dist_error = self.get_dist_error(self.pd_location, self.pd_location_output)
         dir_error = self.get_dir_error(self.pd_location, self.pd_location_output)
         print("Distances error: ", dist_error)
@@ -234,6 +239,7 @@ class TestCase:
 
 def unit_test():
     test_case = TestCase("test_case0")
+    test_case.eval_model()
     test_case.draw_route()
     # test_case = TestCase("../Dataset-of-Pedestrian-Dead-Reckoning/Hand-Walk/Hand-Walk-09-001")
 
