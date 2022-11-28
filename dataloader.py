@@ -119,12 +119,17 @@ class TestCase:
         self.m_x = self.m[:, 0]
         self.m_y = self.m[:, 1]
         self.m_z = self.m[:, 2]
+        self.a_mag = self.magnitude(self.a)
+        self.la_mag = self.magnitude(self.la)
+        self.gs_mag = self.magnitude(self.gs)
+        self.m_mag = self.magnitude(self.m)
         
         # 7. 通过 a - la 算出它自带的 g
         self.g = self.a - self.la
         self.g_x = self.g[:, 0]
         self.g_y = self.g[:, 1]
         self.g_z = self.g[:, 2]
+        self.g_mag = self.magnitude(self.g)
 
         # 8. 前 10% 的 Location_input 的数据
         self.len_input = int(len(self.time_location) * 0.1)
@@ -176,9 +181,11 @@ class TestCase:
     
     # 取绝对值
     @staticmethod
-    def magnitude(x, y, z):
-        
-        return np.sqrt(x ** 2 + y ** 2 + z ** 2)
+    def magnitude(x, y=None, z=None):
+        if y is not None and z is not None:
+            return np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        else:
+            return np.sqrt(x[:, 0] ** 2 + x[:, 1] ** 2 + x[:, 2] ** 2)
 
 
     # 画路线图
