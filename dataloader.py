@@ -75,15 +75,22 @@ class TestCase:
             self.time[i * 50: (i + 1) * 50] = np.linspace(self.time_location[i], self.time_location[i] + 0.98, 50)
 
             # 3. 根据 time 使用最近邻插值获取 a, la, gs, m
-            time_data = self.pd_accelerometer[self.pd_accelerometer.columns[0]]
             self._a = self.nearest_neighbor_interpolation(
-                    self.time, time_data, np.array(self.pd_accelerometer[self.pd_accelerometer.columns[1:4]]))
+                    self.time,
+                    self.pd_accelerometer[self.pd_accelerometer.columns[0]],
+                    np.array(self.pd_accelerometer[self.pd_accelerometer.columns[1:4]]))
             self._la = self.nearest_neighbor_interpolation(
-                    self.time, time_data, np.array(self.pd_linear_accelererometer[self.pd_linear_accelererometer.columns[1:4]]))
+                    self.time,
+                    self.pd_linear_accelererometer[self.pd_linear_accelererometer.columns[0]],
+                    np.array(self.pd_linear_accelererometer[self.pd_linear_accelererometer.columns[1:4]]))
             self._gs = self.nearest_neighbor_interpolation(
-                    self.time, time_data, np.array(self.pd_gyroscope[self.pd_gyroscope.columns[1:4]]))
+                    self.time,
+                    self.pd_gyroscope[self.pd_gyroscope.columns[0]],
+                    np.array(self.pd_gyroscope[self.pd_gyroscope.columns[1:4]]))
             self._m = self.nearest_neighbor_interpolation(
-                    self.time, time_data, np.array(self.pd_magnetometer[self.pd_magnetometer.columns[1:4]]))
+                    self.time,
+                    self.pd_magnetometer[self.pd_magnetometer.columns[0]],
+                    np.array(self.pd_magnetometer[self.pd_magnetometer.columns[1:4]]))
 
             # 4. 保存 preprocessed.csv, 每一列分别为 "t", "a", "la", "gs", "m"
             self.preprocessed_data = np.concatenate((self.time.reshape(-1, 1), self._a, self._la, self._gs, self._m), axis=1)
@@ -165,6 +172,11 @@ class TestCase:
             self._vertical_accuracy_output = self._location_output[:, 6]
             self._x_output = (self._latitude_output - self._origin[0]) * self._K
             self._y_output = (self._longitude_output - self._origin[1]) * self._K
+
+    
+    # 取绝对值
+    def magnitude(self, x, y, z):
+        return np.sqrt(x ** 2 + y ** 2 + z ** 2)
 
 
     # 画路线图
