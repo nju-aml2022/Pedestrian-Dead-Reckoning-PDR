@@ -75,25 +75,25 @@ class TestCase:
             self.time[i * 50: (i + 1) * 50] = np.linspace(self.time_location[i], self.time_location[i] + 0.98, 50)
 
             # 3. 根据 time 使用最近邻插值获取 a, la, gs, m
-            self._a = self.nearest_neighbor_interpolation(
+            self.a = self.nearest_neighbor_interpolation(
                     self.time,
                     self.pd_accelerometer[self.pd_accelerometer.columns[0]],
                     np.array(self.pd_accelerometer[self.pd_accelerometer.columns[1:4]]))
-            self._la = self.nearest_neighbor_interpolation(
+            self.la = self.nearest_neighbor_interpolation(
                     self.time,
                     self.pd_linear_accelererometer[self.pd_linear_accelererometer.columns[0]],
                     np.array(self.pd_linear_accelererometer[self.pd_linear_accelererometer.columns[1:4]]))
-            self._gs = self.nearest_neighbor_interpolation(
+            self.gs = self.nearest_neighbor_interpolation(
                     self.time,
                     self.pd_gyroscope[self.pd_gyroscope.columns[0]],
                     np.array(self.pd_gyroscope[self.pd_gyroscope.columns[1:4]]))
-            self._m = self.nearest_neighbor_interpolation(
+            self.m = self.nearest_neighbor_interpolation(
                     self.time,
                     self.pd_magnetometer[self.pd_magnetometer.columns[0]],
                     np.array(self.pd_magnetometer[self.pd_magnetometer.columns[1:4]]))
 
             # 4. 保存 preprocessed.csv, 每一列分别为 "t", "a", "la", "gs", "m"
-            self.preprocessed_data = np.concatenate((self.time.reshape(-1, 1), self._a, self._la, self._gs, self._m), axis=1)
+            self.preprocessed_data = np.concatenate((self.time.reshape(-1, 1), self.a, self.la, self.gs, self.m), axis=1)
             pd.DataFrame(self.preprocessed_data).to_csv(os.path.join(self.test_case_path, "preprocessed.csv"), index=False, header=[
                 "t", "a_x", "a_y", "a_z", "la_x", "la_y", "la_z", "gs_x", "gs_y", "gs_z", "m_x", "m_y", "m_z"])
 
@@ -101,81 +101,83 @@ class TestCase:
         else:
             self.preprocessed_data = np.array(pd.read_csv(os.path.join(self.test_case_path, "preprocessed.csv")))
             self.time = self.preprocessed_data[:, 0]
-            self._a = self.preprocessed_data[:, 1:4]
-            self._la = self.preprocessed_data[:, 4:7]
-            self._gs = self.preprocessed_data[:, 7:10]
-            self._m = self.preprocessed_data[:, 10:13]
+            self.a = self.preprocessed_data[:, 1:4]
+            self.la = self.preprocessed_data[:, 4:7]
+            self.gs = self.preprocessed_data[:, 7:10]
+            self.m = self.preprocessed_data[:, 10:13]
 
         # 6. 为 a, la, gs, m 扩充成 a_x, a_y, a_z, la_x, la_y, la_z, gs_x, gs_y, gs_z, m_x, m_y, m_z
-        self._a_x = self._a[:, 0]
-        self._a_y = self._a[:, 1]
-        self._a_z = self._a[:, 2]
-        self._la_x = self._la[:, 0]
-        self._la_y = self._la[:, 1]
-        self._la_z = self._la[:, 2]
-        self._gs_x = self._gs[:, 0]
-        self._gs_y = self._gs[:, 1]
-        self._gs_z = self._gs[:, 2]
-        self._m_x = self._m[:, 0]
-        self._m_y = self._m[:, 1]
-        self._m_z = self._m[:, 2]
+        self.a_x = self.a[:, 0]
+        self.a_y = self.a[:, 1]
+        self.a_z = self.a[:, 2]
+        self.la_x = self.la[:, 0]
+        self.la_y = self.la[:, 1]
+        self.la_z = self.la[:, 2]
+        self.gs_x = self.gs[:, 0]
+        self.gs_y = self.gs[:, 1]
+        self.gs_z = self.gs[:, 2]
+        self.m_x = self.m[:, 0]
+        self.m_y = self.m[:, 1]
+        self.m_z = self.m[:, 2]
         
         # 7. 通过 a - la 算出它自带的 g
-        self._g = self._a - self._la
-        self._g_x = self._g[:, 0]
-        self._g_y = self._g[:, 1]
-        self._g_z = self._g[:, 2]
+        self.g = self.a - self.la
+        self.g_x = self.g[:, 0]
+        self.g_y = self.g[:, 1]
+        self.g_z = self.g[:, 2]
 
         # 8. 前 10% 的 Location_input 的数据
-        self._len_input = int(len(self.time_location) * 0.1)
-        self._location = np.array(
-            self.pd_location_input[self.pd_location_input.columns[1:]][:self._len_input])
-        self._latitude = self._location[:, 0]
-        self._longitude = self._location[:, 1]
-        self._height = self._location[:, 2]
-        self._velocity = self._location[:, 3]
-        self._direction = self._location[:, 4]
-        self._horizontal_accuracy = self._location[:, 5]
-        self._vertical_accuracy = self._location[:, 6]
+        self.len_input = int(len(self.time_location) * 0.1)
+        self.location = np.array(
+            self.pd_location_input[self.pd_location_input.columns[1:]][:self.len_input])
+        self.latitude = self.location[:, 0]
+        self.longitude = self.location[:, 1]
+        self.height = self.location[:, 2]
+        self.velocity = self.location[:, 3]
+        self.direction = self.location[:, 4]
+        self.horizontal_accuracy = self.location[:, 5]
+        self.vertical_accuracy = self.location[:, 6]
 
         # 9. 对经纬度进行处理: 减去原点后乘以 K
         #    选取前 10% 中最后一个数据作为经纬度原点
-        self._origin = (self._latitude[-1], self._longitude[-1])
-        self._K = 1e5
-        self._x = (self._latitude - self._origin[0]) * self._K
-        self._y = (self._longitude - self._origin[1]) * self._K
+        self.origin = (self.latitude[-1], self.longitude[-1])
+        self.K = 1e5
+        self.x = (self.latitude - self.origin[0]) * self.K
+        self.y = (self.longitude - self.origin[1]) * self.K
 
         # 10. 对 Location 进行相同的处理
         if self.have_location_valid:
-            self._location_valid = np.array(
+            self.location_valid = np.array(
                 self.pd_location[self.pd_location.columns[1:]])
-            self._latitude_valid = self._location_valid[:, 0]
-            self._longitude_valid = self._location_valid[:, 1]
-            self._height_valid = self._location_valid[:, 2]
-            self._velocity_valid = self._location_valid[:, 3]
-            self._direction_valid = self._location_valid[:, 4]
-            self._horizontal_accuracy_valid = self._location_valid[:, 5]
-            self._vertical_accuracy_valid = self._location_valid[:, 6]
-            self._x_valid = (self._latitude_valid - self._origin[0]) * self._K
-            self._y_valid = (self._longitude_valid - self._origin[1]) * self._K
+            self.latitude_valid = self.location_valid[:, 0]
+            self.longitude_valid = self.location_valid[:, 1]
+            self.height_valid = self.location_valid[:, 2]
+            self.velocity_valid = self.location_valid[:, 3]
+            self.direction_valid = self.location_valid[:, 4]
+            self.horizontal_accuracy_valid = self.location_valid[:, 5]
+            self.vertical_accuracy_valid = self.location_valid[:, 6]
+            self.x_valid = (self.latitude_valid - self.origin[0]) * self.K
+            self.y_valid = (self.longitude_valid - self.origin[1]) * self.K
         
         # 11. 对 Location_output 进行相同的处理
         if self.have_location_output:
-            self._location_output = np.array(
+            self.location_output = np.array(
                 self.pd_location_output[self.pd_location_output.columns[1:]])
-            self._latitude_output = self._location_output[:, 0]
-            self._longitude_output = self._location_output[:, 1]
-            self._height_output = self._location_output[:, 2]
-            self._velocity_output = self._location_output[:, 3]
-            self._direction_output = self._location_output[:, 4]
-            self._horizontal_accuracy_output = self._location_output[:, 5]
-            self._vertical_accuracy_output = self._location_output[:, 6]
-            self._x_output = (self._latitude_output - self._origin[0]) * self._K
-            self._y_output = (self._longitude_output - self._origin[1]) * self._K
+            self.latitude_output = self.location_output[:, 0]
+            self.longitude_output = self.location_output[:, 1]
+            self.height_output = self.location_output[:, 2]
+            self.velocity_output = self.location_output[:, 3]
+            self.direction_output = self.location_output[:, 4]
+            self.horizontal_accuracy_output = self.location_output[:, 5]
+            self.vertical_accuracy_output = self.location_output[:, 6]
+            self.x_output = (self.latitude_output - self.origin[0]) * self.K
+            self.y_output = (self.longitude_output - self.origin[1]) * self.K
 
     
     # 取绝对值
-    def magnitude(self, x, y, z):
+    @staticmethod
+    def magnitude(x, y, z):
+        
         return np.sqrt(x ** 2 + y ** 2 + z ** 2)
 
 
@@ -186,17 +188,17 @@ class TestCase:
             _y = y
             _direction = direction
         elif draw_type == "valid" and self.have_location_valid:
-            _x = self._x_valid
-            _y = self._y_valid
-            _direction = self._direction_valid
+            _x = self.x_valid
+            _y = self.y_valid
+            _direction = self.direction_valid
         elif draw_type == "output" and self.have_location_output:
-            _x = self._x_output
-            _y = self._y_output
-            _direction = self._direction_output
+            _x = self.x_output
+            _y = self.y_output
+            _direction = self.direction_output
         else:
-            _x = self._x
-            _y = self._y
-            _direction = self._direction
+            _x = self.x
+            _y = self.y
+            _direction = self.direction
         plt.plot(_x, _y)
 
         # 每隔 n / number_of_arrows 个点画一个方向箭头
