@@ -6,10 +6,12 @@ from matplotlib import pyplot as plt
 
 class TestCase:
 
-    def __init__(self, test_case_path) -> None:
+    def __init__(self, test_case_path, is_slice=False) -> None:
         self.test_case_path = test_case_path
-        self.load_data_from_csv()
-        self.preprocess_data()
+        if not is_slice:
+            self.load_data_from_csv()
+            self.preprocess_data()
+            self.generate_data()
         
 
     def load_data_from_csv(self):
@@ -41,7 +43,6 @@ class TestCase:
             self.pd_location = pd.read_csv(os.path.join(self.test_case_path, "Location.csv"))
 
 
-
     @staticmethod
     def nearest_neighbor_interpolation(time, time_data, data):
         '''
@@ -63,6 +64,9 @@ class TestCase:
         '''
         # 0. Location_input 对应的 time_location
         self.time_location = np.array(self.pd_location_input[self.pd_location_input.columns[0]])
+
+        self.slice_start = 0
+        self.slice_end = len(self.time_location)
 
         # 1. 如果不存在 preprocessed.csv 文件，则进行预处理
         if not os.path.exists(os.path.join(self.test_case_path, "preprocessed.csv")):
@@ -106,7 +110,29 @@ class TestCase:
             self.gs = self.preprocessed_data[:, 7:10]
             self.m = self.preprocessed_data[:, 10:13]
 
-        # 6. 为 a, la, gs, m 扩充成 a_x, a_y, a_z, la_x, la_y, la_z, gs_x, gs_y, gs_z, m_x, m_y, m_z
+        # 8. 前 10% 的 Location_input 的数据
+        self.len_input = int(len(self.time_location) * 0.1)
+        self.location = np.array(
+            self.pd_location_input[self.pd_location_input.columns[1:]][:self.len_input])
+        self.latitude = self.location[:, 0]
+        self.longitude = self.location[:, 1]
+        # 9. 选取前 10% 中最后一个数据作为经纬度原点
+        self.origin = (self.latitude[-1], self.longitude[-1])
+        # 10. 对 Location 进行相同的处理
+        if self.have_location_valid:
+            self.location_valid = np.array(
+                self.pd_location[self.pd_location.columns[1:]])
+        # 11. 对 Location_output 进行相同的处理
+        if self.have_location_output:
+            self.location_output = np.array(
+                self.pd_location_output[self.pd_location_output.columns[1:]])
+
+
+    def generate_data(self):
+        '''
+        生成一些其他相关的数据
+        '''
+        # 为 a, la, gs, m 扩充成 a_x, a_y, a_z, la_x, la_y, la_z, gs_x, gs_y, gs_z, m_x, m_y, m_z
         self.a_x = self.a[:, 0]
         self.a_y = self.a[:, 1]
         self.a_z = self.a[:, 2]
@@ -131,10 +157,7 @@ class TestCase:
         self.g_z = self.g[:, 2]
         self.g_mag = self.magnitude(self.g)
 
-        # 8. 前 10% 的 Location_input 的数据
-        self.len_input = int(len(self.time_location) * 0.1)
-        self.location = np.array(
-            self.pd_location_input[self.pd_location_input.columns[1:]][:self.len_input])
+        # 处理 Location
         self.latitude = self.location[:, 0]
         self.longitude = self.location[:, 1]
         self.height = self.location[:, 2]
@@ -142,18 +165,12 @@ class TestCase:
         self.direction = self.location[:, 4]
         self.horizontal_accuracy = self.location[:, 5]
         self.vertical_accuracy = self.location[:, 6]
-
-        # 9. 对经纬度进行处理: 减去原点后乘以 K
-        #    选取前 10% 中最后一个数据作为经纬度原点
-        self.origin = (self.latitude[-1], self.longitude[-1])
+        # 对经纬度进行处理: 减去原点后乘以 K
         self.K = 1e5
         self.x = (self.latitude - self.origin[0]) * self.K
         self.y = (self.longitude - self.origin[1]) * self.K
 
-        # 10. 对 Location 进行相同的处理
         if self.have_location_valid:
-            self.location_valid = np.array(
-                self.pd_location[self.pd_location.columns[1:]])
             self.latitude_valid = self.location_valid[:, 0]
             self.longitude_valid = self.location_valid[:, 1]
             self.height_valid = self.location_valid[:, 2]
@@ -164,10 +181,7 @@ class TestCase:
             self.x_valid = (self.latitude_valid - self.origin[0]) * self.K
             self.y_valid = (self.longitude_valid - self.origin[1]) * self.K
         
-        # 11. 对 Location_output 进行相同的处理
         if self.have_location_output:
-            self.location_output = np.array(
-                self.pd_location_output[self.pd_location_output.columns[1:]])
             self.latitude_output = self.location_output[:, 0]
             self.longitude_output = self.location_output[:, 1]
             self.height_output = self.location_output[:, 2]
@@ -178,7 +192,44 @@ class TestCase:
             self.x_output = (self.latitude_output - self.origin[0]) * self.K
             self.y_output = (self.longitude_output - self.origin[1]) * self.K
 
+
+    def slice(self, start, end):
+        """
+        切片，返回一个新的 TestCase 对象
+        start 和 end 是与 time_location 对齐的
+        """
+        if end <= 0:
+            end = len(self.time_location) + end
+        new_test_case = TestCase(self.test_case_path, is_slice=True)
+        new_test_case.slice_start = start
+        new_test_case.slice_end = end
+        _start, _end = 50 * start, 50 * end
+        # 切片
+        new_test_case.time_location = self.time_location[start:end]
+        new_test_case.time = self.time[_start:_end]
+        new_test_case.preprocessed_data = self.preprocessed_data[_start:_end]
+        new_test_case.a = self.a[_start:_end]
+        new_test_case.la = self.la[_start:_end]
+        new_test_case.gs = self.gs[_start:_end]
+        new_test_case.m = self.m[_start:_end]
+        # 前 10% 的 Location_input 的数据
+        start_input = start if start < self.len_input else self.len_input
+        end_input = end if end < self.len_input else self.len_input
+        new_test_case.origin = self.origin
+        new_test_case.location = self.location[start_input:end_input]
+        # 对 Location 进行相同的处理
+        new_test_case.have_location_valid = self.have_location_valid
+        if new_test_case.have_location_valid:
+            new_test_case.location_valid = self.location_valid[start:end]
+        # 对 Location_output 进行相同的处理
+        new_test_case.have_location_output = self.have_location_output
+        if new_test_case.have_location_output:
+            new_test_case.location_output = self.location_output[start:end]
+        # 重新处理
+        new_test_case.generate_data()
+        return new_test_case
     
+
     # 取绝对值
     @staticmethod
     def magnitude(x, y=None, z=None):
@@ -211,12 +262,17 @@ class TestCase:
         # 每隔 n / number_of_arrows 个点画一个方向箭头
         n = len(_x)
         period = n // number_of_arrows
+        head_width = min((max(_x) - min(_x)) / 100, (max(_y) - min(_y)) / 100)
+        head_length = head_width
+        if period == 0:
+            print("Error: too many arrows or too few points.")
+            return
         for i in range(0, n - period, period):
             length = ((_x[i + period] - _x[i]) ** 2 + (_y[i + period] - _y[i]) ** 2) ** 0.5
             # deg2rag
             angle = _direction[i] * np.pi / 180
             dx, dy = length * np.cos(angle), length * np.sin(angle)
-            plt.arrow(_x[i], _y[i], dx, dy, head_width=5, head_length=5, fc='r', ec='r')
+            plt.arrow(_x[i], _y[i], dx, dy, head_width=head_width, head_length=head_length, fc='r', ec='r')
 
         plt.xlabel('latitude')
         plt.ylabel('longitude')
@@ -260,9 +316,10 @@ class TestCase:
 
 def unit_test():
     test_case = TestCase("test_case0")
-    test_case.eval_model()
-    test_case.draw_route()
-    # test_case = TestCase("../Dataset-of-Pedestrian-Dead-Reckoning/Hand-Walk/Hand-Walk-09-001")
+    new_test_case = test_case.slice(100, 500)
+    print(f"{new_test_case.time_location.shape = }")
+    print(f"{new_test_case.time.shape = }")
+    new_test_case.draw_route()
 
 
 if __name__ == "__main__":
