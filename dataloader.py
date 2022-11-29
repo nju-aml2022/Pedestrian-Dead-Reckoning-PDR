@@ -217,6 +217,7 @@ class TestCase:
         end_input = end if end < self.len_input else self.len_input
         new_test_case.origin = self.origin
         new_test_case.location = self.location[start_input:end_input]
+        new_test_case.len_input = end_input - start_input
         # 对 Location 进行相同的处理
         new_test_case.have_location_valid = self.have_location_valid
         if new_test_case.have_location_valid:
