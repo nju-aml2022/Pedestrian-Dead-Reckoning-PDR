@@ -57,8 +57,8 @@ def predict_direction(tc: TestCase, optimized_mode_ratio=0.4, butter_N=2, butter
     g = np.array([g_x, g_y, g_z])
     g = g.T
 
-    # 通过磁场方向和重力加速度叉乘得到东向量
-    e = np.cross(m, g)
+    # 通过重力加速度和磁场方向叉乘得到东向量
+    e = np.cross(g, m)
 
     # 第 10% 附近的 50 个东向量平均值作为初始东向量
     no_opt_size = len(tc.direction)
@@ -107,7 +107,7 @@ def unit_test():
     print(f"{direction_mix(direction1, direction2, 0.5) = }")
 
     tc = TestCase('test_case0')
-    direction_pred = predict_direction(tc, optimized_mode_ratio=0.9, butter_Wn=0.005)
+    direction_pred = predict_direction(tc)
     print(f"{direction_pred.shape = }")
 
     plt.plot(tc.time, direction_pred)
