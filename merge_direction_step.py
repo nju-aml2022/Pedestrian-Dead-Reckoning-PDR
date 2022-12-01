@@ -76,7 +76,7 @@ def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_st
         x_list.append(dx + x_list[-1])
         y_list.append(dy + y_list[-1])
 
-    return np.array([time_list, x_list, y_list]).T
+    return np.array([time_list, x_list, y_list]).T, direction_pred
 
 
 def unit_test():
@@ -98,7 +98,8 @@ def unit_test():
     plt.subplots_adjust(wspace=0.3, hspace=0.3)
     for name, arg in args:
 
-        t_x_y_list = merge_dir_step(test_case, name).T
+        t_x_y_list, _ = merge_dir_step(test_case, name)
+        t_x_y_list = t_x_y_list.T
 
         plt.subplot(*arg)
         plt.plot(t_x_y_list[1], t_x_y_list[2], label="pred")

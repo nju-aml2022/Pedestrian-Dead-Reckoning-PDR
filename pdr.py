@@ -33,19 +33,17 @@ def pdr(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean
     最后将结果保存在 test_case 中
     '''
     # 获取合并的步伐
-    steps = merge_dir_step(test_case, model_name, distance_frac_step, clean_data, optimized_mode_ratio, butter_Wn)
+    steps, part_direction_pred = merge_dir_step(test_case, model_name, distance_frac_step, clean_data, optimized_mode_ratio, butter_Wn)
     time_step, x_step, y_step = steps[:, 0], steps[:, 1], steps[:, 2]
     # 我们需要需要插值到 time_location
     time_location = test_case.time_location
     # 插值
     x_interp = linear_interpolation(time_location, time_step, x_step)
     y_interp = linear_interpolation(time_location, time_step, y_step)
-    # 以及方向
-    direction_pred = predict_direction(test_case, optimized_mode_ratio=optimized_mode_ratio, butter_Wn=butter_Wn)
     # 每隔 50 取一次平均得到预测的前 10% 数据 (无初始值偏移量)
-    direction_interp = []
-    for i in range(0, len(direction_pred), 50):
-        direction_interp.append(np.mean(direction_pred[i: i + 50]))
+    direction_interp = list(test_case.direction[:clean_data])
+    for i in range(0, len(part_direction_pred), 50):
+        direction_interp.append(np.mean(part_direction_pred[i: i + 50]))
     direction_interp = np.array(direction_interp)
     # 将结果存储到 test_case 中
     test_case.set_location_output(x_interp, y_interp, direction_interp)
@@ -68,10 +66,10 @@ def eval_model(test_case: TestCase):
 
 def unit_test():
     test_case = TestCase('test_case0')
-    pdr(test_case)
+    pdr(test_case, optimized_mode_ratio=0.9, butter_Wn=0.005)
     # 进行了 pdr 之后, 输出数据就会被保存在 test_case 中, 也会输出到 CSV 文件中
-    test_case.draw_route()
     test_case.eval_model()
+    test_case.draw_route()
 
 
 if __name__ == '__main__':
