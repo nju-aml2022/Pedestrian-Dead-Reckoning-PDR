@@ -8,12 +8,12 @@ import math
 
 
 # name 是回归分类器的名字
-def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean_data_ratio=0.01, optimized_mode_ratio=0.1, butter_Wn=0.005) -> np.ndarray:
+def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean_data=5, optimized_mode_ratio=0.1, butter_Wn=0.005) -> np.ndarray:
     '''
     :param test_case: 测试用例
     :param model_name: 回归分类器的名字, 默认 'ExtraTree' ('DecisionTree', 'Linear', 'SVR', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'Bagging', 'ExtraTree')
     :param distance_frac_step: 用于计算步长的距离分数, 一般取 5 秒
-    :param clean_data_ratio: 清洗数据的比例 (比如 0.01 表示清洗掉前 1% 的数据)
+    :param clean_data: 清洗数据的秒数, 默认为 5 秒
     :param optimized_mode_ratio: 方向预测中优化器模式的比例, 默认 0.1
     :param butter_Wn: 滤波器的截止频率, 默认 0.005
 
@@ -24,9 +24,6 @@ def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_st
     time_list = []
     x_list = []
     y_list = []
-
-    # 清除的比例
-    clean_data = int(clean_data_ratio * len(test_case.time_location))
 
     # 去除扰动数据大小
 

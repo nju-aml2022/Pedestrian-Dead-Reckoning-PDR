@@ -21,19 +21,19 @@ def linear_interpolation(time, time_data, data):
     return np.array(data_interp)
 
 
-def pdr(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean_data_ratio=0.01, optimized_mode_ratio=0.1, butter_Wn=0.005) -> None:
+def pdr(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean_data=5, optimized_mode_ratio=0.1, butter_Wn=0.005) -> None:
     '''
     :param test_case: 测试用例
     :param model_name: 回归分类器的名字, 默认 'ExtraTree' ('DecisionTree', 'Linear', 'SVR', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'Bagging', 'ExtraTree')
     :param distance_frac_step: 用于计算步长的距离分数, 一般取 5 秒, 范围为 (3, 20)
-    :param clean_data_ratio: 清洗数据的比例 (比如 0.01 表示清洗掉前 1% 的数据), 范围为 (0, 0.1)
+    :param clean_data: 清洗数据的秒数, 默认为 5 秒
     :param optimized_mode_ratio: 方向预测中优化器模式的比例, 默认 0.1, 范围为 (0, 1)
     :param butter_Wn: 滤波器的截止频率, 默认 0.005, 范围为 (0, 1)
 
     最后将结果保存在 test_case 中
     '''
     # 获取合并的步伐
-    steps = merge_dir_step(test_case, model_name, distance_frac_step, clean_data_ratio, optimized_mode_ratio, butter_Wn)
+    steps = merge_dir_step(test_case, model_name, distance_frac_step, clean_data, optimized_mode_ratio, butter_Wn)
     time_step, x_step, y_step = steps[:, 0], steps[:, 1], steps[:, 2]
     # 我们需要需要插值到 time_location
     time_location = test_case.time_location
