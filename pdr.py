@@ -25,10 +25,10 @@ def pdr(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean
     '''
     :param test_case: 测试用例
     :param model_name: 回归分类器的名字, 默认 'ExtraTree' ('DecisionTree', 'Linear', 'SVR', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'Bagging', 'ExtraTree')
-    :param distance_frac_step: 用于计算步长的距离分数, 一般取 5 秒
-    :param clean_data_ratio: 清洗数据的比例 (比如 0.01 表示清洗掉前 1% 的数据)
-    :param optimized_mode_ratio: 方向预测中优化器模式的比例, 默认 0.1
-    :param butter_Wn: 滤波器的截止频率, 默认 0.005
+    :param distance_frac_step: 用于计算步长的距离分数, 一般取 5 秒, 范围为 (3, 20)
+    :param clean_data_ratio: 清洗数据的比例 (比如 0.01 表示清洗掉前 1% 的数据), 范围为 (0, 0.1)
+    :param optimized_mode_ratio: 方向预测中优化器模式的比例, 默认 0.1, 范围为 (0, 1)
+    :param butter_Wn: 滤波器的截止频率, 默认 0.005, 范围为 (0, 1)
 
     最后将结果保存在 test_case 中
     '''
