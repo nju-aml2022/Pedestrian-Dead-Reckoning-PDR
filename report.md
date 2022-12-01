@@ -90,7 +90,7 @@ h2, h3 {
     <img alt="" src="images/2022-12-01-15-09-28.png" width="50%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 1.</b> 数据的三个维度
+    <b>Figure 1.1</b> 数据的三个维度
     <br />
     <br />
 </div>
@@ -118,18 +118,18 @@ h2, h3 {
 
 针对室内场景，我们在多种设备上收集并使用了以下三种状态采集到的数据：
 
-1. 步行，手机拿在手上，共49组
-3. 步行，手机放在背包内，共4组
-1. 步行，手机放在裤兜内，共12组
+1. 步行，手机拿在手上，共 49 组
+3. 步行，手机放在背包内，共 4 组
+1. 步行，手机放在裤兜内，共 12 组
 
 每种数据都收集了多组。在单次收集过程中，手机大部分时间保持在同一个状态下。
 
 此外我们还收集了一些不太可能出现在室内的运动状态，用于测试模型的迁移性能：
 
-1. 骑车，手机拿在手上，共5组
-2. 骑车，手机放在背包内，共1组
-3. 跑步，手机放在裤兜内，共4组
-4. 骑车，手机放在裤兜内，共7组
+1. 骑车，手机拿在手上，共 5 组
+2. 骑车，手机放在背包内，共 1 组
+3. 跑步，手机放在裤兜内，共 4 组
+4. 骑车，手机放在裤兜内，共 7 组
 
 
 ### 2.2 数据划分
@@ -216,7 +216,7 @@ $$
     <img alt="" src="images/example.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 2.</b> 以 X 为横坐标，以 Y 为纵坐标得到的平面坐标系图
+    <b>Figure 4.1</b> 以 X 为横坐标，以 Y 为纵坐标得到的平面坐标系图
     <br />
     <br />
 </div>
@@ -340,7 +340,187 @@ t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
 
 ## 六、方向预测
 
-尝试使用了哪些方法，为什么使用这些方法，方法的效果怎么样，如果效果不好，可能的原因时什么，如何解决这些问题。以及迁移场景的完成情况。（方盛俊）
+### 6.1 方向预测所需数据
+
+为了实现准确且稳定的前进方向预测功能，这里我们主要使用了三类数据：
+
+- **磁力计数据**（Magnetometer）：北半球磁场方向始终指向北偏下，因此磁力计数据是预测前进方向的核心；
+- **加速度计中的重力加速度数据**（Accelerometer）：我们对加速度计测出来的加速度进行处理，便能得到重力加速度数据，重力加速度数据是确定手机坐标轴朝向的核心；
+- **GPS 位置中前 10% 的前进方向数据**（Location_input）：我们可以通过前 10% 的前进方向数据。
+
+注意，这里我们并没有用到陀螺仪的数据，因为陀螺仪测出来的是角速度，很容易被手机的摇摆振荡的角速度变化干扰，因此陀螺仪的数据几乎是不可用的，这里我们就舍弃了这个数据。
+
+### 6.2 低通滤波过滤手机自身振荡
+
+磁力计和加速度计记录的数据，会随着手机自身的摇摆而不断地振荡。这种振荡是不可避免的，因为它来源于：
+
+1. 行人行走时将手机拿在手上，手机随着手的摆动而振荡；
+2. 行人行走时将手机放在口袋里，手机随着大腿的摆动而振荡；
+1. 行人行走时将手机固定在某一位置（如打电话固定在耳旁），手机也依然会因为行走本身就不是匀速的，因而发生振荡。
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-18-58-24.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.1</b> 人的行走会引起振荡
+    <br />
+    <br />
+</div>
+
+手机的摇摆会引起手机坐标轴发生变化，进而导致测出来的磁力和加速度数据在 xyz 三个轴上不断地振荡变化。
+
+为了消除这种振荡，我使用了一个截止频率相关参数 `Wn` 大致在 0.005 左右的 2 阶 **Butterworth 低通滤波器**，将磁力和加速度进行低通滤波，得到了更为平滑的磁力和加速度数据。由于加速度经过了低通滤波，几乎就等于被取了平均值，和重力无关的加速度被抵消，因此此时我们有 **加速度 $a$ 等于重力加速度 $g$**。
+
+这里有一点很有趣的事实，除了这种对加速度低通滤波得到重力加速度的方法外，我们还可以通过 **加速度计数据减去线性加速度计数据** 这种方法，得到重力加速度 $g$，只不过依然需要滤波。
+
+$$
+\begin{equation}
+    \begin{cases}
+        g \approx \operatorname{lowass}(a) \\
+        g \approx \operatorname{lowass}(a - la) \\
+    \end{cases}
+\end{equation}
+$$
+
+滤波器的代码为：
+
+```python
+b, a = signal.butter(2, 0.005, 'lowpass')
+m_x = signal.filtfilt(b, a, tc.m_x)
+m_y = signal.filtfilt(b, a, tc.m_y)
+m_z = signal.filtfilt(b, a, tc.m_z)
+```
+
+由图便可看出，经过低通滤波后的磁力和加速度均平缓了很多，可以直接用于后续的方向预测了。
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-18-50-15.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.2</b> 磁力计数据低通滤波
+    <br />
+    <br />
+</div>
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-18-50-28.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.3</b> 加速度计数据低通滤波（滤波后等于重力加速度）
+    <br />
+    <br />
+</div>
+
+这里有很关键的一点，这是作业文档中提到的一个假设，并且也是我们后续进行方向预测的核心假设：**在实验过程中，手机大部分时间保持在同一个状态下（如一直拿在手上）**。
+
+有了这个假设，我们就可以推出一个更强的结论：**经过低通滤波后的数据，可以等同于，手机相对于人没有发生任何旋转、位移与振荡时（即完全固定），记录下来的数据。**
+
+<div style="text-align: center;">
+    <img alt="" src="images/lowpass.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.4</b> 手机经过低通滤波后不再振荡，可以认为相对于人来说位置和方向是固定的
+    <br />
+    <br />
+</div>
+
+借助这个结论，我们就可以使用空间解析几何的方法，通过磁力计等数据预测出当前的前进方向。
+
+### 6.3 空间解析几何预测偏转角度
+
+首先我们有两个很重要的前提：
+
+1. **磁力计测出来的数据，是在手机坐标系下的一系列向量，并且该向量方向总是指向北偏下；**
+2. **重力加速度，是在手机坐标系下的一系列向量，并且该向量方向总是指向下。**
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-21-04-40.png" width="60%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.5</b> 部分向量之间的关系，从论文 [1] 中截取
+    <br />
+    <br />
+</div>
+
+因此我们有以下的步骤：
+
+第一步，首先用重力加速度向量 $g$ 和磁力向量 $m$ 叉乘得到东向量 $e$。
+
+$$
+\begin{equation}
+    e = g \times m
+\end{equation}
+$$
+
+第二步，选出一个初始东向量，例如这里可以选取第 10% 个东向量作为初始东向量。
+
+$$
+\begin{equation}
+    e_0 = e_{10\%}
+\end{equation}
+$$
+
+第三步，通过东向量与初始东向量的点乘除以模获取东向量和初始东向量的夹角，并转成角度制。
+
+$$
+\begin{equation}
+    \theta = \frac{180}{\pi} \cdot \arccos\frac{e \cdot e_0}{|e||e_0|}
+\end{equation}
+$$
+
+注意，此时我们并不知道 $e$ 在 $e_0$ 的左侧还是右侧，所以我们缺少一个符号。 
+
+第四步，通过东向量与初始东向量叉乘后，与重力加速度点乘，得到对应的正负符号。
+
+$$
+\begin{equation}
+    \mathrm{signs} = - \operatorname{sign}((e \times e_0) \cdot g)
+\end{equation}
+$$
+
+最后，我们就得到了前进方向与 $e_0$ 对应的初始方向 $\mathrm{direction\_0}$ 的偏转角度。
+
+$$
+\begin{equation}
+    \mathrm{direction\_diff} = \mathrm{signs} \cdot \theta
+\end{equation}
+$$
+
+最后的前进方向就是初始方向 $\mathrm{direction\_0}$ 加上偏转角度，即
+
+$$
+\begin{equation}
+    \mathrm{direction} = \mathrm{signs} \cdot \theta + \mathrm{direction\_0}
+\end{equation}
+$$
+
+还要记得最后取模 $360$，以便转换到区间 $[0, 360)$ 上。
+
+### 6.4 使用前 10% 的数据优化初始方向
+
+选取初始东向量 $e_0$ 对应的初始方向 $\mathrm{direction\_0}$ 有两种可行的方案。
+
+第一种是直接选用 $e_0$ 对应的第 10% 个方向数据作为初始方向 $\mathrm{direction\_0}$。这种办法的好处是计算快捷，而且不容易受到前面 $10%$ 的其他不准确数据的干扰。
+
+第二种方法是，使用优化器，以及前 10% 的数据，最小化平均误差函数：
+
+$$
+\begin{equation}
+    \operatorname{mean\_error}(x) = \operatorname{mean}(\operatorname{abs}(\mathrm{direction\_valid}, (\mathrm{signs} \cdot \theta + x)))
+\end{equation}
+$$
+
+当然，这里的取绝对值函数 $\operatorname{abs}(a, b)$ 需要考虑圆周的情况，即 $0$ 度等同于 $360$ 度。
+
+我们使用 `scipy` 的优化器，对应的优化代码为：
+
+```python
+# 平均误差
+error_fn = lambda x: np.mean(
+    direction_diff(direction_valid, (direction_offset + x)))
+# 最小化误差获取最佳初始值
+direction0 = scipy.optimize.minimize(error_fn, 0).x[0]
+```
 
 
 ## 七、统一算法
