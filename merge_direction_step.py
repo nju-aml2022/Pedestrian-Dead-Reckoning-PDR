@@ -24,7 +24,7 @@ def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_st
     time_list = []
     x_list = []
     y_list = []
-
+    mean_step = 0
     # 去除扰动数据大小
 
     # 去除扰动数据前先保存
@@ -35,9 +35,11 @@ def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_st
 
     test_case = test_case.slice(clean_data, 0)
     direction_pred = direction_predictor.predict_direction(test_case, optimized_mode_ratio=optimized_mode_ratio, butter_Wn=butter_Wn)
-    model = step_predictor.step_process_regression(
-        test_case, model_name, write=False, distance_frac_step=distance_frac_step)
-
+    if model_name != 'Mean':
+        model = step_predictor.step_process_regression(
+            test_case, model_name, write=False, distance_frac_step=distance_frac_step)
+    else:
+        mean_step = step_predictor.step_process_mean(test_case)
     filtered_a = step_predictor.filter(10, test_case.a_mag)
     num_peak_3 = signal.find_peaks(filtered_a, distance=20)
     mean_peak = sum(filtered_a[num_peak_3[0]])/len(num_peak_3[0])
@@ -58,8 +60,11 @@ def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_st
     for i in range(step_test_begin, len(real_peak)):
         f = 1/(test_case.time[real_peak[i]] - test_case.time[real_peak[i-1]])
         sigma = np.var(filtered_a[real_peak[i-1]:real_peak[i]])
+        if model_name != 'Mean':
+            step_pred = model.predict([[f, sigma]])[0]
+        else:
+            step_pred = mean_step
 
-        step_pred = model.predict([[f, sigma]])[0]
 
         if i == len(real_peak)-1:
             mean_direction = np.mean(direction_pred[real_peak[i]:-1])
@@ -92,7 +97,8 @@ def unit_test():
         ('AdaBoost', (3, 3, 5)),
         ('GradientBoosting', (3, 3, 6)),
         ('Bagging', (3, 3, 7)),
-        ('ExtraTree', (3, 3, 8))
+        ('ExtraTree', (3, 3, 8)),
+        ('Mean', (3, 3, 9))
     ]
 
     plt.subplots_adjust(wspace=0.3, hspace=0.3)
