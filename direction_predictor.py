@@ -1,6 +1,5 @@
 import scipy
 import numpy as np
-from geopy.distance import geodesic
 from scipy import signal
 from matplotlib import pyplot as plt
 from dataloader import TestCase

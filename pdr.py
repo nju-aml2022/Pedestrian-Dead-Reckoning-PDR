@@ -1,10 +1,6 @@
-import os
 import numpy as np
-from geopy.distance import geodesic
-from matplotlib import pyplot as plt
 from dataloader import TestCase
 from merge_direction_step import merge_dir_step
-from direction_predictor import predict_direction
 
 
 def linear_interpolation(time, time_data, data):
@@ -15,7 +11,7 @@ def linear_interpolation(time, time_data, data):
     # 当前下标 i
     i = 0
     for t in time:
-        while i < len(time_data) - 1 and t >= time_data[i + 1]:
+        while i < len(time_data) - 2 and t >= time_data[i + 1]:
             i += 1
         data_interp.append(data[i] + (data[i + 1] - data[i]) / (time_data[i + 1] - time_data[i]) * (t - time_data[i]))
     return np.array(data_interp)
@@ -66,6 +62,7 @@ def eval_model(test_case: TestCase):
 
 def unit_test():
     test_case = TestCase('test_case0')
+    # test_case = TestCase('../Dataset-of-Pedestrian-Dead-Reckoning/Pocket-Ride/Pocket-Ride-03-002')
     pdr(test_case, optimized_mode_ratio=0.9, butter_Wn=0.005)
     # 进行了 pdr 之后, 输出数据就会被保存在 test_case 中, 也会输出到 CSV 文件中
     test_case.eval_model()

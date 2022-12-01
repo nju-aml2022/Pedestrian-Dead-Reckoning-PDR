@@ -1,6 +1,5 @@
 from dataloader import TestCase
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy import signal
 
 
