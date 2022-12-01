@@ -334,8 +334,97 @@ t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
 
 ## 五、步伐检测
 
-尝试使用了哪些方法，为什么使用这些方法，方法的效果怎么样，如果效果不好，可能的原因时什么，如何解决这些问题。以及在迁移场景的完成情况。（任圣杰）
+步伐检测主要分为两个部分：
 
+1. 脚步提取：行人何时向前迈了一步
+2. 步幅估计：向前迈的一步有多长
+
+### 5.1 脚步提取
+
+手机在行人行走时会产生周期性晃动，加速度计数据可以反映步数特征。设备姿态的变化会影响三个轴上的加速度值，为了避免这种影响，选择加速度`a_mag`的大小作为阶跃检测的标准。
+
+$$
+\text{a\_mag} = \sqrt{a_x^2 + a_y^2+a_z^2}
+$$
+
+使用 `test_case0` 中的部分时间段内的加速度幅度作为处理示例，未经处理的数据如下：
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-20-00-32.png" width="80%" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <br />
+    <br />
+</div>
+
+通过肉眼可以清晰的看出加速度的震荡具有规律性，较大峰值个数表示行人的可能步数。接着进行处理：
+
+#### 5.1.1 滤波器处理
+
+此时先用滤波器进行滤波，将波动变得更加光滑，消除小波峰:
+
+代码：
+
+```python
+### 滤波器
+def filter(range,data):
+    filter = np.ones(range) / range
+    return np.convolve(data, filter, mode="same")
+
+new_test_case = test_case.slice(10, 15)
+### 对 a_mag 进行滤波
+filtered_a = filter(10,new_test_case.a_mag)
+```
+
+滤波效果：
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-20-25-35.png" width="80%" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <br />
+    <br />
+</div>
+
+#### 5.1.2 步长间隔选择
+
+一般人的步频最大为 3 Hz ，设定0.4秒的间隔查找峰值，如果含有多个峰值，则其中含有假峰，选取波峰最大的那一个。
+
+波峰采集效果：
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-21-04-19.png" width="80%" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <br />
+    <br />
+</div>
+
+#### 5.1.3 候选锋检测
+
+在选取好候选波峰后，其中依然可能含有假波峰，例如行人行走过程中突然停下来，停下来的期间不可避免的会有微小振动，而这些振动中的波峰也会被识别到。此时对所有候选波峰求平均，并保留大于 平均值*0.8 的部分。
+
+### 5.2 步幅估计
+
+在原始数据中，我们已经拥有了经纬度坐标，借此我们可以计算出经纬度坐标间的距离；同时，我们也进行了脚步提取，知道什么时间迈出了一步。此时就需要通过前百分之十的数据，对步幅进行一个估计。
+
+在预测前，我们发现并不知道行人每一步迈出的具体长度；而脚步波峰对应的时间 与 经纬度坐标的时间没有对齐，实际情况为：
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-21-42-15.png" width="80%" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <br />
+    <br />
+</div>
+
+
+
+尝试使用了哪些方法，为什么使用这些方法，方法的效果怎么样，如果效果不好，可能的原因时什么，如何解决这些问题。以及在迁移场景的完成情况。（任圣杰）
 
 ## 六、方向预测
 
