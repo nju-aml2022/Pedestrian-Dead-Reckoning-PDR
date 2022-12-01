@@ -8,12 +8,25 @@ import math
 
 
 # name 是回归分类器的名字
-def merge_dir_step(test_case, name='ExtraTree', distance_frac_step=5, clean_data=5):
+def merge_dir_step(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean_data_ratio=0.01, optimized_mode_ratio=0.1, butter_Wn=0.005) -> np.ndarray:
+    '''
+    :param test_case: 测试用例
+    :param model_name: 回归分类器的名字, 默认 'ExtraTree' ('DecisionTree', 'Linear', 'SVR', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'Bagging', 'ExtraTree')
+    :param distance_frac_step: 用于计算步长的距离分数, 一般取 5 秒
+    :param clean_data_ratio: 清洗数据的比例 (比如 0.01 表示清洗掉前 1% 的数据)
+    :param optimized_mode_ratio: 方向预测中优化器模式的比例, 默认 0.1
+    :param butter_Wn: 滤波器的截止频率, 默认 0.005
+
+    :return: np.ndarray, shape=(n, 3), n 为步数, 3 列分别为 time, x 和 y
+    '''
 
     # 最后输出
     time_list = []
     x_list = []
     y_list = []
+
+    # 清除的比例
+    clean_data = int(clean_data_ratio * len(test_case.time_location))
 
     # 去除扰动数据大小
 
@@ -24,9 +37,9 @@ def merge_dir_step(test_case, name='ExtraTree', distance_frac_step=5, clean_data
         y_list.append(test_case.y[i])
 
     test_case = test_case.slice(clean_data, 0)
-    direction_pred = direction_predictor.predict_direction(test_case)
+    direction_pred = direction_predictor.predict_direction(test_case, optimized_mode_ratio=optimized_mode_ratio, butter_Wn=butter_Wn)
     model = step_predictor.step_process_regression(
-        test_case, name, write=False, distance_frac_step=distance_frac_step)
+        test_case, model_name, write=False, distance_frac_step=distance_frac_step)
 
     filtered_a = step_predictor.filter(10, test_case.a_mag)
     num_peak_3 = signal.find_peaks(filtered_a, distance=20)
@@ -85,6 +98,7 @@ def unit_test():
         ('ExtraTree', (3, 3, 8))
     ]
 
+    plt.subplots_adjust(wspace=0.3, hspace=0.3)
     for name, arg in args:
 
         t_x_y_list = merge_dir_step(test_case, name).T
