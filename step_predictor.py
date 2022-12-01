@@ -7,6 +7,22 @@ def filter(range, data):
     filter = np.ones(range) / range
     return np.convolve(data, filter, mode="same")
 
+def step_process_mean(test_data:TestCase):
+    filtered_a = test_data.a_mag
+    filtered_a = filter(10,test_data.a_mag)
+    num_peak_3 = signal.find_peaks(filtered_a, distance=20)
+    mean_peak = sum(filtered_a[num_peak_3[0]])/len(num_peak_3[0])
+    real_peak = num_peak_3[0][np.where(filtered_a[num_peak_3[0]] > mean_peak*0.8)]
+    distance = 0
+    # print(len(real_peak))
+    for k in range(1,len(test_data.y)):
+        distance += np.sqrt((test_data.y[k] - test_data.y[k-1])**2 + (test_data.x[k] - test_data.x[k-1])**2)
+    
+    step_end = 0
+    while test_data.time[real_peak[step_end]] < test_data.time_location[len(test_data.x)-1]:
+        step_end += 1
+    meanstep = distance/step_end
+    return meanstep
 
 def try_model(model: str):
 
