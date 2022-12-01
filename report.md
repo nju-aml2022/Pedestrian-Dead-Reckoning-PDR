@@ -112,9 +112,6 @@ h2, h3 {
 - **每一个段落空一行。**
 - **图片统一保存在 `./images` 文件夹下**
 
-![](images/example.png)
-
-
 
 ## 二、数据收集与处理
 
@@ -127,7 +124,7 @@ h2, h3 {
 1. 步行，手机拿在手上，且是看手机的姿势
 2. 步行，手机拿在手上，随着摆臂运动
 3. 步行，手机放在背包内
-4. 步行，手机放在裤兜内
+1. 步行，手机放在裤兜内
 
 每种数据都收集了多组。在单次收集过程中，手机大部分时间保持在同一个状态下。
 
@@ -148,7 +145,7 @@ h2, h3 {
 经过分析，我们发现 PDR 算法的关键只有两点：
 
 1. 如何预测出任给一个时间点的已走过的 **路程**。
-2. 如何预测出任给一个时间点的对应 **前进方向**。
+1. 如何预测出任给一个时间点的对应 **前进方向**。
 
 我们很容易猜想 **路程** 在 **理论上** 应该是通过 **加速计加速度** 二重积分得到的，方向应该是经过 **陀螺仪角速度** 一重积分得到的。
 
@@ -190,7 +187,149 @@ $$
 
 ## 四、数据预处理
 
-（方盛俊）
+### 4.1 经纬度转换
+
+由于输入和输出的位置信息是以经纬度为准的，而经纬度作为位置信息有一些缺点：
+
+1. 经纬度是绝对位置，不是相对位置，后续处理比较困难；
+1. 经纬度的单位长度的实际物理长度过大，比如经纬度的一度可能就对应着几十或上百公里，而我们实际的行走范围可能不会超过一公里；
+2. 经纬度是在球形地球的假设上进行计算的，难以直接转换成以米为单位，也难以转到平面坐标系。
+
+针对上面问题，我们使用了一个公式：
+
+$$
+\begin{equation}
+    \begin{cases}
+        X_k = K \cdot (\mathrm{latitude}_k - \mathrm{latitude\_origin}) \\
+        Y_k = K \cdot (\mathrm{longitude}_k - \mathrm{longitude\_origin}) \\
+    \end{cases}
+\end{equation}
+$$
+
+对经纬度进行转换，其中 $K = 10^{5}$，而 $\mathrm{latitude\_origin}$ 和 $\mathrm{longitude\_origin}$ 为我们选定的初始坐标点，这里我们选用了第 10% 行数据对应的经纬度为初始坐标点。
+
+而 $K = 10^{5}$ 是为了将数据放大到和单位米相同的数量级，由于我们的运动范围较小，因此我们可以直接忽略球形地球假设，直接使用平面坐标系。
+
+
+<div style="text-align: center;">
+    <img alt="" src="images/example.png" width="80%" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 2.</b> 以 X 为横坐标，以 Y 为纵坐标得到的平面坐标系图
+    <br />
+    <br />
+</div>
+
+经过经纬度转换后，我们使用 $X$ 和 $Y$ 的数据画出 `test_case0` 对应平面坐标系，并且每隔一段画出对应的前进方向的箭头，我们可以看出前进方向和我们转换后的 $X$ 和 $Y$ 依旧是吻合的。
+
+### 4.2 最近邻插值对齐数据
+
+我们的输入有五个文件（忽略气压计数据），分别为：
+
+- `Accelerometer.csv`（加速度计数据，50 Hz）
+- `Linear Accelerometer.csv`（线性加速度计数据，50 Hz）
+- `Gyroscope.csv`（陀螺仪数据，50 Hz）
+- `Magnetometer.csv`（磁力计数据，50 Hz）
+- `Location_input.csv`（GPS 位置信息，1 Hz）
+
+可以看出，GPS 位置信息和其他的输入数据的频率并不相同，它们的频率 **在理论上** 是 1: 50 的关系。但是由于每个传感器的周期并不完全同步，也存在着时钟周期误差的影响，最后导致实际记录的数据实际上并不是严格 1: 50 对齐的，有可能每一个文件的数据长度都各不相同。
+
+数据不对齐以及长度不一致的话，在数据处理和计算时会造成各种错误，甚至代码无法执行，所以我们首先一个很重要的任务就是对齐数据，让它们数据长度严格保证是 1: 50 的比例，且在时间轴上（或者说在同一个下标下）严格对齐。
+
+在这里，我们使用了最近邻插值的方法，以 `Location_input.csv` 的时间轴为基准，进行了最近邻插值，对数据进行了对齐处理。大致算法如下：
+
+1. 将 `Location_input.csv` 的 1 Hz 的时间轴 `time_location` 线性扩充成 50 Hz 的时间轴 `time`, 例如 `time_locaiton = [1., 2.]` 的话，便会扩充成 `time = [1., 1.02, 1.04, ..., 1.98, 2., 2.02, 2.04, ..., 2.98]`, 其中 `len(time) = 100`。
+2. 将其他 50 Hz 的数据通过最近邻插值对齐到 `time` 时间轴上，最近邻插值即为每一个点匹配到最近的样本点。例如 `Accelerometer.csv` 的数据 `[[1.01, 1], [1.02, 2], [1.03, 3], [1.04, 4]]` 可能就会被最近邻插值为 `[[1.00, 1], [1.02, 2], [1.04, 4]]`。
+
+通过最近邻插值，我们就能保证数据是严格的 1: 50 沿着时间轴对齐了。例如 `test_case` 的数据经过数据预处理后的尺寸如下：
+
+```python
+test_case.time_location.shape = (601,)
+test_case.time.shape = (30050,)
+```
+
+### 4.3 对应的代码以及 TestCase 接口
+
+最近邻插值的代码为：
+
+```python
+def nearest_neighbor_interpolation(time, time_data, data):
+    '''
+    使用最近邻插值获取新的 data_interp
+    '''
+    data_interp = []
+    # 当前下标 i
+    i = 0
+    for t in time:
+        while i < len(time_data) - 1 and t >= time_data[i + 1]:
+            i += 1
+        data_interp.append(data[i])
+    return np.array(data_interp)
+```
+
+我们封装了一个类 `TestCase`，用于加载数据、数据预处理、数据抽象和数据保存。`TestCase` 类保存在 `dataloader.py` 文件下，部分接口如下：
+
+```python
+# 通过文件路径加载一个 TestCase 
+test_case = TestCase("test_case0")
+# 可以对 TestCase 进行切片, 单位为秒
+new_test_case = test_case.slice(100, 500)
+# 1 Hz 的时间轴
+print(test_case.time_location)
+# 50 Hz 的时间轴
+print(test_case.time)
+```
+
+```python
+# 加速度数据
+print(test_case.a)
+print(test_case.a_x)
+print(test_case.a_y)
+print(test_case.a_z)
+# 加速度幅值
+print(test_case.a_mag)
+# 磁力计数据
+print(test_case.m)
+print(test_case.m_x)
+print(test_case.m_y)
+print(test_case.m_z)
+```
+
+```python
+# 必然存在的前 10% 的数据 (Location_input.csv)
+print(test_case.x)
+print(test_case.y)
+print(test_case.direction)
+# 对应的长度
+print(test_case.len_input)
+# 可能存在的验证数据 (Location.csv)
+if test_case.have_location_valid:
+    print(test_case.x_valid)
+    print(test_case.y_valid)
+    print(test_case.direction_valid)
+# 可能存在的输出数据 (Location_output.csv)
+if test_case.have_location_output:
+    print(test_case.x_output)
+    print(test_case.y_output)
+    print(test_case.direction_output)
+```
+
+```python
+# 将结果存储到 test_case 中, 会保存成 "Location_output.csv" 文件
+test_case.set_location_output(x_output, y_output, direction_output)
+# 评估模型, 输出 Distances error, Direction error, Direction ratio
+test_case.eval_model()
+# 画出 test_case 的路线图像
+test_case.draw_route()
+```
+
+并且在数据预处理后，还会输出一个对齐了的数据对应的 CSV 文件 `preprocessed.csv`，格式大致为：
+
+```csv
+t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
+0.00,-1.21,5.23,8.23,-0.43,-0.00,-0.29,-0.21,0.40,0.15,-31.04,-22.45,-29.86
+0.02,-1.21,5.23,8.23,-0.43,-0.00,-0.29,-0.21,0.40,0.15,-31.04,-22.45,-29.86
+```
 
 
 ## 五、步伐检测
@@ -208,9 +347,23 @@ $$
 如何合并以上的代码（任圣杰、方盛俊）
 
 
-## 八、运行代码
+## 八、项目代码
+
+### 8.1 环境搭建
+
+如何搭建环境。（曹明隽）
+
+### 8.2 代码结构
+
+代码结构。（方盛俊）
+
+### 8.3 运行代码
 
 如何运行代码。（曹明隽）
+
+### 8.4 执行测试
+
+如何执行测试。（曹明隽）
 
 
 ## 九、性能测试
