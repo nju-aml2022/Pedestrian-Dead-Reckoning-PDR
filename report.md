@@ -522,10 +522,79 @@ error_fn = lambda x: np.mean(
 direction0 = scipy.optimize.minimize(error_fn, 0).x[0]
 ```
 
+最后我们画出 `test_case0` 对应的图像，可以发现角度预测基本吻合。
 
-## 七、统一算法
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-21-20-00.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.6</b> test_case0 对应的真实角度和预测角度
+    <br />
+    <br />
+</div>
 
-如何合并以上的代码（任圣杰、方盛俊）
+### 6.5 遇到的问题和困难
+
+我们使用的预测角度的方法有一个缺陷，就是我们依赖于一个核心假设：**在实验过程中，手机大部分时间保持在同一个状态下（如一直拿在手上）**。
+
+如果没有这个假设，预测的前进方向角度就很难保证准确。
+
+这是因为，如果手机没有一直保持在一个状态，而是进行了翻面等行为，则预测出来的方向则会发生极大的偏转。
+
+这是因为，手机发生偏转后，手机坐标轴也发生了偏转，且这种偏转不能被低通滤波所抵消。由于手机坐标轴发生了恒定的偏转，理论上东向量 $e$ 也发生了恒定的偏转，这时候我们应该将其逆偏转到原来的坐标轴，才能保证与初始东向量 $e_0$ 的夹角依然是当前的前进方向。
+
+因此我尝试过使用旋转矩阵和逆旋转矩阵来解决这个问题：
+
+```python
+def get_rotation_matrix(a, b):
+    '''
+    get rotation matrix from two unit vectors
+    '''
+    v = np.cross(a, b)
+    s = np.linalg.norm(v)
+    c = np.dot(a, b)
+    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    return np.eye(3) + vx + vx @ vx * (1 - c) / s ** 2
+```
+
+但是最终发现还是无法解决这个问题，这便是在预测角度上所遇到的问题和困难。
+
+由于本次实验假设： **在实验过程中，手机大部分时间保持在同一个状态下（如一直拿在手上）**。这个问题便不存在了，因此我们也没有再过多地纠结下去。
+
+
+## 七、合并算法
+
+### 7.1 统合步伐预测和角度预测
+
+如何合并以上的代码（任圣杰）
+
+### 7.2 线性插值获取最终预测结果
+
+在统合了步伐预测和角度预测之后，我们需要将最后结果，通过插值的方式，对齐到 `Location_input.csv` 的 `time_location` 的时间轴上。
+
+这里我们采用了线性插值的方式，即找到需要插值的时间点，其对应的时间轴上最近的两个样本点，通过线性函数的方式，进行线性插值。
+
+插值函数如下：
+
+```python
+def linear_interpolation(time, time_data, data):
+    '''
+    使用线性插值获取新的 data_interp
+    '''
+    data_interp = []
+    # 当前下标 i
+    i = 0
+    for t in time:
+        while i < len(time_data) - 2 and t >= time_data[i + 1]:
+            i += 1
+        data_interp.append(data[i] + (data[i + 1] - data[i]) \
+            / (time_data[i + 1] - time_data[i]) * (t - time_data[i]))
+    return np.array(data_interp)
+```
+
+基本与最近邻插值一致，因此这里也不过多赘述。
+
+我们将插值得到的 `x` 和 `y` 通过逆变换得到经纬度 `latitude` 和 `longitude` 后，再加上预测出来的前进方向，便得到了最后的 `Location_output.csv`。
 
 
 ## 八、项目代码
@@ -570,10 +639,21 @@ direction0 = scipy.optimize.minimize(error_fn, 0).x[0]
 
 ## 十、小组分工
 
-分工情况。（方盛俊）
+我们小组的分工如下：
+
+1. 搜寻论文及资料：方盛俊、任圣杰、曹明隽
+2. 数据录制：方盛俊、任圣杰、曹明隽
+3. 数据预处理：方盛俊
+4. 步伐预测：任圣杰
+5. 角度预测：方盛俊
+6. 合并算法：任圣杰、方盛俊
+7. 代码测试及超参数学习：曹明隽
+9. 实验报告：方盛俊、任圣杰、曹明隽
+
+此外，我们还有马潮增（201300033）的协助，他并未报上这门课程，而是旁听的这门课程。他在数据录制、角度预测等部分对我们进行了协助。
 
 
 ## 十一、参考文献
 
-参考文献。（曹明隽、任圣杰、方盛俊）
+1. Wang, Boyuan, Xuelin Liu, Baoguo Yu, Ruicai Jia, and Xingli Gan. 2018. "Pedestrian Dead Reckoning Based on Motion Mode Recognition Using a Smartphone" Sensors 18, no. 6: 1811. https://doi.org/10.3390/s18061811
 
