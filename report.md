@@ -65,7 +65,8 @@ h2, h3 {
 输入为 CSV 格式，其每一行都有数据值及采集到该数据时的时间（从开始收集计算），以加速度计为例：
 
 ```csv
-"Time (s)","Acceleration x (m/s^2)","Acceleration y (m/s^2)","Acceleration z (m/s^2)"
+"Time (s)","Acceleration x (m/s^2)","Acceleration y (m/s^2)",
+"Acceleration z (m/s^2)"
 9.364549000E-3,1.003170490E0,3.543418407E0,7.366958618E0
 1.136538300E-2,9.696516991E-1,3.600879431E0,7.357381821E0
 1.336699700E-2,9.696516991E-1,3.620033026E0,7.343016624E0
@@ -86,7 +87,7 @@ h2, h3 {
 （这里可以附上英文，例如 纬度（latitude））
 
 <div style="text-align: center;">
-    <img alt="" src="images/2022-12-01-15-09-28.png" width="50%" />
+    <img alt="" src="images/2022-12-01-15-09-28.png" width="50%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
     <b>Figure 1.</b> 一张图片
@@ -212,7 +213,7 @@ $$
 
 
 <div style="text-align: center;">
-    <img alt="" src="images/example.png" width="80%" />
+    <img alt="" src="images/example.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
     <b>Figure 2.</b> 以 X 为横坐标，以 Y 为纵坐标得到的平面坐标系图
@@ -327,8 +328,8 @@ test_case.draw_route()
 
 ```csv
 t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
-0.00,-1.21,5.23,8.23,-0.43,-0.00,-0.29,-0.21,0.40,0.15,-31.04,-22.45,-29.86
-0.02,-1.21,5.23,8.23,-0.43,-0.00,-0.29,-0.21,0.40,0.15,-31.04,-22.45,-29.86
+0.0,-1.2,5.2,8.2,-0.4,-0.0,-0.2,-0.2,0.4,0.1,-31.0,-22.4,-29.8
+0.0,-1.2,5.2,8.2,-0.4,-0.0,-0.2,-0.2,0.4,0.1,-31.0,-22.4,-29.8
 ```
 
 
