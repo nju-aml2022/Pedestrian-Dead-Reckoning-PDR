@@ -48,32 +48,30 @@ def pdr(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean
         direction_interp.append(np.mean(direction_pred[i: i + 50]))
     direction_interp = np.array(direction_interp)
     # 将结果存储到 test_case 中
+    test_case.set_location_output(x_interp, y_interp, direction_interp)
 
-    # 画出来
-    print(x_interp.shape)
-    print(y_interp.shape)
-    print(direction_interp.shape)
-    plt.plot(x_interp, y_interp)
-    # 每隔 n / number_of_arrows 个点画一个方向箭头
-    n = len(x_interp)
-    period = n // 20
-    head_width = min((max(x_interp) - min(x_interp)) / 100, (max(y_interp) - min(y_interp)) / 100)
-    head_length = head_width
-    if period == 0:
-        print("Error: too many arrows or too few points.")
+
+def eval_model(test_case: TestCase):
+    if not test_case.have_location_output:
+        print("No location output")
         return
-    for i in range(0, n - period, period):
-        length = ((x_interp[i + period] - x_interp[i]) ** 2 + (y_interp[i + period] - y_interp[i]) ** 2) ** 0.5
-        # deg2rag
-        angle = direction_interp[i] * np.pi / 180
-        dx, dy = length * np.cos(angle), length * np.sin(angle)
-        plt.arrow(x_interp[i], y_interp[i], dx, dy, head_width=head_width, head_length=head_length, fc='r', ec='r')
-    plt.show()
+    if not test_case.have_location_valid:
+        print("No location valid")
+        return
+    dist_error = test_case.get_dist_error()
+    dir_error = test_case.get_dir_error()
+    dir_ratio = test_case.get_dir_ratio()
+    print("Distances error: ", dist_error)
+    print("Direction error: ", dir_error)
+    print("Direction ratio: ", dir_ratio)
 
 
 def unit_test():
     test_case = TestCase('test_case0')
     pdr(test_case)
+    # 进行了 pdr 之后, 输出数据就会被保存在 test_case 中, 也会输出到 CSV 文件中
+    test_case.draw_route()
+    test_case.eval_model()
 
 
 if __name__ == '__main__':
