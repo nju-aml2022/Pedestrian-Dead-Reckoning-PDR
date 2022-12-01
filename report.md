@@ -65,7 +65,8 @@ h2, h3 {
 输入为 CSV 格式，其每一行都有数据值及采集到该数据时的时间（从开始收集计算），以加速度计为例：
 
 ```csv
-"Time (s)","Acceleration x (m/s^2)","Acceleration y (m/s^2)","Acceleration z (m/s^2)"
+"Time (s)","Acceleration x (m/s^2)","Acceleration y (m/s^2)",
+"Acceleration z (m/s^2)"
 9.364549000E-3,1.003170490E0,3.543418407E0,7.366958618E0
 1.136538300E-2,9.696516991E-1,3.600879431E0,7.357381821E0
 1.336699700E-2,9.696516991E-1,3.620033026E0,7.343016624E0
@@ -73,37 +74,33 @@ h2, h3 {
 
 输入数据包括：
 
-1. 50Hz 采集的加速度和线加速度，单位为 $m/s^2$
-2. 50Hz 采集的磁力计读数，单位为 $\mu\text{T}$
-3. 50Hz 采集的陀螺仪读数，单位为 $\text{rad}/s$
-4. 前 10% 时间的 1Hz 的 GPS 位置读数：
-   1. 经纬度，单位为 $\degree$
-   2. 高度，单位为 $m$
-   3. 速度，单位为 $m/s$
-   4. 方位角，单位为 $\degree$
-   5. 垂直和水平精度，单位为 $m$
+1. `Accelerometer.csv, Linear Accelerometer.csv`：50Hz 采集的加速度和线加速度，单位为 $m/s^2$
+2. `Magnetometer.csv`：50Hz 采集的磁力计读数，单位为 $\mu\text{T}$
+3. `Gyroscope.csv`：50Hz 采集的陀螺仪读数，单位为 $\text{rad}/s$
+4. `Location_input.csv`：前 10% 时间的 1Hz 的 GPS 位置读数：
+   1. 经纬度 `Latitude, Longitude`，单位为 $\degree$
+   2. 高度 `Height`，单位为 $m$
+   3. 速度 `Velocity`，单位为 $m/s$
+   4. 方位角 `Direction`，单位为 $\degree$
+   5. 垂直和水平精度 `Horizontal Accuracy, Vertical Accuracy`，单位为 $m$
 
-（这里可以附上英文，例如 纬度（latitude））
+其中加速度、线加速度、磁力计、陀螺仪均有三个维度上的读数：
 
 <div style="text-align: center;">
-    <img alt="" src="images/2022-12-01-15-09-28.png" width="50%" />
+    <img alt="" src="images/2022-12-01-15-09-28.png" width="50%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 1.</b> 一张图片
+    <b>Figure 1.1</b> 数据的三个维度
     <br />
     <br />
 </div>
-
-（以及可以附上一些解释的图片，图片可以在论文上找，比如上面那张，也可以用 drawio 之类的东西自己画，也可以用 python plt 画好放上来）
 
 
 ### 1.3 输出
 
 输出为后 90% 时间的 1Hz 的 GPS 位置读数中的经纬度和方位角，即不需要输出速度、高度和精度。
 
-输出也是 CSV 格式。
-
-（这里可以说一下那三个文件的关系：`Location.csv`, `Location_input.csv`，`Location_output.csv`，特别是 `Location_output.csv`）
+输出也是 CSV 格式。输出文件 `Location_output.csv` 的前 10% 将复制 `Location_input.csv` ，并填充其后 90% 的经纬度和方位角。
 
 **文档要求：**
 
@@ -119,21 +116,25 @@ h2, h3 {
 
 数据收集工作由多组合作完成，使用软件 phyphox（中文名：手机物理工坊）。
 
-我们在多种设备上收集并使用了以下四种状态采集到的数据：
+针对室内场景，我们在多种设备上收集并使用了以下三种状态采集到的数据：
 
-1. 步行，手机拿在手上，且是看手机的姿势
-2. 步行，手机拿在手上，随着摆臂运动
-3. 步行，手机放在背包内
-1. 步行，手机放在裤兜内
+1. 步行，手机拿在手上，共 49 组
+3. 步行，手机放在背包内，共 4 组
+1. 步行，手机放在裤兜内，共 12 组
 
 每种数据都收集了多组。在单次收集过程中，手机大部分时间保持在同一个状态下。
 
-（也可以提一下每一个类别大概记录了多少组，还有我们现在不分类了，所以骑自行车之类的数据其实也可以加上去，虽然可能并不是室内，但是可以作为迁移场景说一下）
+此外我们还收集了一些不太可能出现在室内的运动状态，用于测试模型的迁移性能：
+
+1. 骑车，手机拿在手上，共 5 组
+2. 骑车，手机放在背包内，共 1 组
+3. 跑步，手机放在裤兜内，共 4 组
+4. 骑车，手机放在裤兜内，共 7 组
 
 
 ### 2.2 数据划分
 
-在实验中如何对数据进行划分。（曹明隽）
+由于模型的特点，我们没有使用训练集，不需要进行数据划分，收集的所有数据都用于测试。
 
 
 ## 三、总体思路
@@ -212,10 +213,10 @@ $$
 
 
 <div style="text-align: center;">
-    <img alt="" src="images/example.png" width="80%" />
+    <img alt="" src="images/example.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 2.</b> 以 X 为横坐标，以 Y 为纵坐标得到的平面坐标系图
+    <b>Figure 4.1</b> 以 X 为横坐标，以 Y 为纵坐标得到的平面坐标系图
     <br />
     <br />
 </div>
@@ -327,8 +328,8 @@ test_case.draw_route()
 
 ```csv
 t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
-0.00,-1.21,5.23,8.23,-0.43,-0.00,-0.29,-0.21,0.40,0.15,-31.04,-22.45,-29.86
-0.02,-1.21,5.23,8.23,-0.43,-0.00,-0.29,-0.21,0.40,0.15,-31.04,-22.45,-29.86
+0.0,-1.2,5.2,8.2,-0.4,-0.0,-0.2,-0.2,0.4,0.1,-31.0,-22.4,-29.8
+0.0,-1.2,5.2,8.2,-0.4,-0.0,-0.2,-0.2,0.4,0.1,-31.0,-22.4,-29.8
 ```
 
 
@@ -428,12 +429,261 @@ filtered_a = filter(10,new_test_case.a_mag)
 
 ## 六、方向预测
 
-尝试使用了哪些方法，为什么使用这些方法，方法的效果怎么样，如果效果不好，可能的原因时什么，如何解决这些问题。以及迁移场景的完成情况。（方盛俊）
+### 6.1 方向预测所需数据
+
+为了实现准确且稳定的前进方向预测功能，这里我们主要使用了三类数据：
+
+- **磁力计数据**（Magnetometer）：北半球磁场方向始终指向北偏下，因此磁力计数据是预测前进方向的核心；
+- **加速度计中的重力加速度数据**（Accelerometer）：我们对加速度计测出来的加速度进行处理，便能得到重力加速度数据，重力加速度数据是确定手机坐标轴朝向的核心；
+- **GPS 位置中前 10% 的前进方向数据**（Location_input）：我们可以通过前 10% 的前进方向数据。
+
+注意，这里我们并没有用到陀螺仪的数据，因为陀螺仪测出来的是角速度，很容易被手机的摇摆振荡的角速度变化干扰，因此陀螺仪的数据几乎是不可用的，这里我们就舍弃了这个数据。
+
+### 6.2 低通滤波过滤手机自身振荡
+
+磁力计和加速度计记录的数据，会随着手机自身的摇摆而不断地振荡。这种振荡是不可避免的，因为它来源于：
+
+1. 行人行走时将手机拿在手上，手机随着手的摆动而振荡；
+2. 行人行走时将手机放在口袋里，手机随着大腿的摆动而振荡；
+1. 行人行走时将手机固定在某一位置（如打电话固定在耳旁），手机也依然会因为行走本身就不是匀速的，因而发生振荡。
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-18-58-24.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.1</b> 人的行走会引起振荡
+    <br />
+    <br />
+</div>
+
+手机的摇摆会引起手机坐标轴发生变化，进而导致测出来的磁力和加速度数据在 xyz 三个轴上不断地振荡变化。
+
+为了消除这种振荡，我使用了一个截止频率相关参数 `Wn` 大致在 0.005 左右的 2 阶 **Butterworth 低通滤波器**，将磁力和加速度进行低通滤波，得到了更为平滑的磁力和加速度数据。由于加速度经过了低通滤波，几乎就等于被取了平均值，和重力无关的加速度被抵消，因此此时我们有 **加速度 $a$ 等于重力加速度 $g$**。
+
+这里有一点很有趣的事实，除了这种对加速度低通滤波得到重力加速度的方法外，我们还可以通过 **加速度计数据减去线性加速度计数据** 这种方法，得到重力加速度 $g$，只不过依然需要滤波。
+
+$$
+\begin{equation}
+    \begin{cases}
+        g \approx \operatorname{lowass}(a) \\
+        g \approx \operatorname{lowass}(a - la) \\
+    \end{cases}
+\end{equation}
+$$
+
+滤波器的代码为：
+
+```python
+b, a = signal.butter(2, 0.005, 'lowpass')
+m_x = signal.filtfilt(b, a, tc.m_x)
+m_y = signal.filtfilt(b, a, tc.m_y)
+m_z = signal.filtfilt(b, a, tc.m_z)
+```
+
+由图便可看出，经过低通滤波后的磁力和加速度均平缓了很多，可以直接用于后续的方向预测了。
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-18-50-15.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.2</b> 磁力计数据低通滤波
+    <br />
+    <br />
+</div>
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-18-50-28.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.3</b> 加速度计数据低通滤波（滤波后等于重力加速度）
+    <br />
+    <br />
+</div>
+
+这里有很关键的一点，这是作业文档中提到的一个假设，并且也是我们后续进行方向预测的核心假设：**在实验过程中，手机大部分时间保持在同一个状态下（如一直拿在手上）**。
+
+有了这个假设，我们就可以推出一个更强的结论：**经过低通滤波后的数据，可以等同于，手机相对于人没有发生任何旋转、位移与振荡时（即完全固定），记录下来的数据。**
+
+<div style="text-align: center;">
+    <img alt="" src="images/lowpass.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.4</b> 手机经过低通滤波后不再振荡，可以认为相对于人来说位置和方向是固定的
+    <br />
+    <br />
+</div>
+
+借助这个结论，我们就可以使用空间解析几何的方法，通过磁力计等数据预测出当前的前进方向。
+
+### 6.3 空间解析几何预测偏转角度
+
+首先我们有两个很重要的前提：
+
+1. **磁力计测出来的数据，是在手机坐标系下的一系列向量，并且该向量方向总是指向北偏下；**
+2. **重力加速度，是在手机坐标系下的一系列向量，并且该向量方向总是指向下。**
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-21-04-40.png" width="60%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.5</b> 部分向量之间的关系，从论文 [1] 中截取
+    <br />
+    <br />
+</div>
+
+因此我们有以下的步骤：
+
+第一步，首先用重力加速度向量 $g$ 和磁力向量 $m$ 叉乘得到东向量 $e$。
+
+$$
+\begin{equation}
+    e = g \times m
+\end{equation}
+$$
+
+第二步，选出一个初始东向量，例如这里可以选取第 10% 个东向量作为初始东向量。
+
+$$
+\begin{equation}
+    e_0 = e_{10\%}
+\end{equation}
+$$
+
+第三步，通过东向量与初始东向量的点乘除以模获取东向量和初始东向量的夹角，并转成角度制。
+
+$$
+\begin{equation}
+    \theta = \frac{180}{\pi} \cdot \arccos\frac{e \cdot e_0}{|e||e_0|}
+\end{equation}
+$$
+
+注意，此时我们并不知道 $e$ 在 $e_0$ 的左侧还是右侧，所以我们缺少一个符号。 
+
+第四步，通过东向量与初始东向量叉乘后，与重力加速度点乘，得到对应的正负符号。
+
+$$
+\begin{equation}
+    \mathrm{signs} = - \operatorname{sign}((e \times e_0) \cdot g)
+\end{equation}
+$$
+
+最后，我们就得到了前进方向与 $e_0$ 对应的初始方向 $\mathrm{direction\_0}$ 的偏转角度。
+
+$$
+\begin{equation}
+    \mathrm{direction\_diff} = \mathrm{signs} \cdot \theta
+\end{equation}
+$$
+
+最后的前进方向就是初始方向 $\mathrm{direction\_0}$ 加上偏转角度，即
+
+$$
+\begin{equation}
+    \mathrm{direction} = \mathrm{signs} \cdot \theta + \mathrm{direction\_0}
+\end{equation}
+$$
+
+还要记得最后取模 $360$，以便转换到区间 $[0, 360)$ 上。
+
+### 6.4 使用前 10% 的数据优化初始方向
+
+选取初始东向量 $e_0$ 对应的初始方向 $\mathrm{direction\_0}$ 有两种可行的方案。
+
+第一种是直接选用 $e_0$ 对应的第 10% 个方向数据作为初始方向 $\mathrm{direction\_0}$。这种办法的好处是计算快捷，而且不容易受到前面 $10%$ 的其他不准确数据的干扰。
+
+第二种方法是，使用优化器，以及前 10% 的数据，最小化平均误差函数：
+
+$$
+\begin{equation}
+    \operatorname{mean\_error}(x) = \operatorname{mean}(\operatorname{abs}(\mathrm{direction\_valid}, (\mathrm{signs} \cdot \theta + x)))
+\end{equation}
+$$
+
+当然，这里的取绝对值函数 $\operatorname{abs}(a, b)$ 需要考虑圆周的情况，即 $0$ 度等同于 $360$ 度。
+
+我们使用 `scipy` 的优化器，对应的优化代码为：
+
+```python
+# 平均误差
+error_fn = lambda x: np.mean(
+    direction_diff(direction_valid, (direction_offset + x)))
+# 最小化误差获取最佳初始值
+direction0 = scipy.optimize.minimize(error_fn, 0).x[0]
+```
+
+最后我们画出 `test_case0` 对应的图像，可以发现角度预测基本吻合。
+
+<div style="text-align: center;">
+    <img alt="" src="images/2022-12-01-21-20-00.png" width="80%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 6.6</b> test_case0 对应的真实角度和预测角度
+    <br />
+    <br />
+</div>
+
+### 6.5 遇到的问题和困难
+
+我们使用的预测角度的方法有一个缺陷，就是我们依赖于一个核心假设：**在实验过程中，手机大部分时间保持在同一个状态下（如一直拿在手上）**。
+
+如果没有这个假设，预测的前进方向角度就很难保证准确。
+
+这是因为，如果手机没有一直保持在一个状态，而是进行了翻面等行为，则预测出来的方向则会发生极大的偏转。
+
+这是因为，手机发生偏转后，手机坐标轴也发生了偏转，且这种偏转不能被低通滤波所抵消。由于手机坐标轴发生了恒定的偏转，理论上东向量 $e$ 也发生了恒定的偏转，这时候我们应该将其逆偏转到原来的坐标轴，才能保证与初始东向量 $e_0$ 的夹角依然是当前的前进方向。
+
+因此我尝试过使用旋转矩阵和逆旋转矩阵来解决这个问题：
+
+```python
+def get_rotation_matrix(a, b):
+    '''
+    get rotation matrix from two unit vectors
+    '''
+    v = np.cross(a, b)
+    s = np.linalg.norm(v)
+    c = np.dot(a, b)
+    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    return np.eye(3) + vx + vx @ vx * (1 - c) / s ** 2
+```
+
+但是最终发现还是无法解决这个问题，这便是在预测角度上所遇到的问题和困难。
+
+由于本次实验假设： **在实验过程中，手机大部分时间保持在同一个状态下（如一直拿在手上）**。这个问题便不存在了，因此我们也没有再过多地纠结下去。
 
 
-## 七、统一算法
+## 七、合并算法
 
-如何合并以上的代码（任圣杰、方盛俊）
+### 7.1 统合步伐预测和角度预测
+
+如何合并以上的代码（任圣杰）
+
+### 7.2 线性插值获取最终预测结果
+
+在统合了步伐预测和角度预测之后，我们需要将最后结果，通过插值的方式，对齐到 `Location_input.csv` 的 `time_location` 的时间轴上。
+
+这里我们采用了线性插值的方式，即找到需要插值的时间点，其对应的时间轴上最近的两个样本点，通过线性函数的方式，进行线性插值。
+
+插值函数如下：
+
+```python
+def linear_interpolation(time, time_data, data):
+    '''
+    使用线性插值获取新的 data_interp
+    '''
+    data_interp = []
+    # 当前下标 i
+    i = 0
+    for t in time:
+        while i < len(time_data) - 2 and t >= time_data[i + 1]:
+            i += 1
+        data_interp.append(data[i] + (data[i + 1] - data[i]) \
+            / (time_data[i + 1] - time_data[i]) * (t - time_data[i]))
+    return np.array(data_interp)
+```
+
+基本与最近邻插值一致，因此这里也不过多赘述。
+
+我们将插值得到的 `x` 和 `y` 通过逆变换得到经纬度 `latitude` 和 `longitude` 后，再加上预测出来的前进方向，便得到了最后的 `Location_output.csv`。
 
 
 ## 八、项目代码
@@ -478,10 +728,21 @@ filtered_a = filter(10,new_test_case.a_mag)
 
 ## 十、小组分工
 
-分工情况。（方盛俊）
+我们小组的分工如下：
+
+1. 搜寻论文及资料：方盛俊、任圣杰、曹明隽
+2. 数据录制：方盛俊、任圣杰、曹明隽
+3. 数据预处理：方盛俊
+4. 步伐预测：任圣杰
+5. 角度预测：方盛俊
+6. 合并算法：任圣杰、方盛俊
+7. 代码测试及超参数学习：曹明隽
+9. 实验报告：方盛俊、任圣杰、曹明隽
+
+此外，我们还有马潮增（201300033）的协助，他并未报上这门课程，而是旁听的这门课程。他在数据录制、角度预测等部分对我们进行了协助。
 
 
 ## 十一、参考文献
 
-参考文献。（曹明隽、任圣杰、方盛俊）
+1. Wang, Boyuan, Xuelin Liu, Baoguo Yu, Ruicai Jia, and Xingli Gan. 2018. "Pedestrian Dead Reckoning Based on Motion Mode Recognition Using a Smartphone" Sensors 18, no. 6: 1811. https://doi.org/10.3390/s18061811
 
