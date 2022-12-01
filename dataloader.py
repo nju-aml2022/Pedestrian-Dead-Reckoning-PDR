@@ -377,7 +377,6 @@ class TestCase:
         if not self.have_location_valid:
             print("No location valid")
             return
-        print("local_error")
         dist_list = []
         for i in range(self.len_input, len(self.time_location)):
             dist = geodesic((self.latitude_valid[i], self.longitude_valid[i]),
