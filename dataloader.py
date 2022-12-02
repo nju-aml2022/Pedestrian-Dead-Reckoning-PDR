@@ -317,7 +317,7 @@ class TestCase:
         self.pd_location_output = pd.DataFrame(self.location_output)
         self.pd_location_output.columns = self.pd_location_input.columns
         self.pd_location_output.to_csv(
-            self.test_case_path + "/location_output.csv", index=False)
+            self.test_case_path + "/Location_output.csv", index=False)
             
 
     def eval_model(self):
