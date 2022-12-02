@@ -1,5 +1,6 @@
 import os
 import argparse
+import time
 import warnings
 from pdr import pdr
 from dataloader import TestCase
@@ -20,7 +21,7 @@ EXCLUDE=[
     "Pocket-Walk/Pocket-Walk-03-010"
 ]
 
-def main():
+def collected_dataset():
     warnings.filterwarnings('ignore')
     parser = argparse.ArgumentParser()
     parser.add_argument("--use", type=str, default="walk", choices=["walk", "other", "all"], help="datasets to use")
@@ -59,11 +60,13 @@ def main():
             continue
     df = pd.DataFrame({"name": names, "dist_error": dist_error, "dir_error": dir_error, "dir_ratio": dir_ratio})
     df = pd.DataFrame({"dataset": names, "dist_error": dist_error, "dir_error": dir_error, "dir_ratio": dir_ratio})
-    df.to_csv("result.csv", index=False)
+    df.to_csv(f"result_{args.use}.csv", index=False)
     print("Done, results saved to result.csv")
     print(f"Average distance error: {df['dist_error'].mean()}")
     print(f"Average direction error: {df['dir_error'].mean()}")
     print(f"Average direction ratio: {df['dir_ratio'].mean()}")
+    print(f"Direction error < 15: {df[df['dir_error']<15].shape[0]}/{df.shape[0]}")
+    print(f"Direction ratio > 0.9: {df[df['dir_ratio']>0.9].shape[0]}/{df.shape[0]}")
     print(f"Failed count: {fails}")
 
 def test_step_method():
@@ -187,11 +190,13 @@ def mp_test():
     df.to_csv("result_mp_adjust_case0.csv", index=False)
         
 def test_on_TestSet():
+    start=time.time()
     datasets = [f"../TestSet/test{i}" for i in (1,2,3,5,6,7,8,9,10,11)]
     for dataset in datasets:
         test_case = TestCase(dataset)
         pdr(test_case)
+    print(f"Finished {len(datasets)} test cases in {time.time()-start} seconds")
 
 
 if __name__ == "__main__":
-    main()
+    collected_dataset()
