@@ -860,11 +860,21 @@ test_case0/
 
 ### 9.1 在 test_case0 上的运行情况
 
-在 `test_case0` 上耗时 $2.844$ 秒完成推理，准确性指标为：
+在 test_case0 上耗时 $2.844$ 秒完成推理，准确性指标为：
 
 * 每个GPS 定位点下估计的位置和真实位置的直线距离的平均值 `dist_error` ：$30.46$ 米
 * 方位角平均误差 `dir_error` ：$8.66\degree$ 
 * 方位角平均误差小于 $15\degree$ 的比例 `dir_ratio` ： $92.6\%$
+
+<div style="text-align: center;">
+    <img alt="" src="images/test_case0.png" width="60%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 9.1</b> test_case0 上的预测点与实际定位点
+    <br />
+    <br />
+</div>
+
 
 ### 9.2 在测试数据集上的运行情况
 
@@ -874,6 +884,8 @@ test_case0/
 
 ### 9.3 在收集数据集上的运行情况
 
+> 虽然数据集的时间跨度有区别，但是求取准确性指标的平均值时未纳入考虑
+
 在 51 个收集的行走数据集上耗时 $105$ 秒完成推理，平均每个 $2.06$ 秒，各数据集准确性指标的平均值为：
 
 * 每个GPS 定位点下估计的位置和真实位置的直线距离的平均值 `dist_error` ：$109.08$ 米
@@ -882,7 +894,14 @@ test_case0/
 * 共 $15$ 个数据集上方位角平均误差小于 $15\degree$
 * 共 $3$ 个数据集上方位角平均误差小于 $15\degree$ 的比例大于 $90\%$
 
-> 虽然数据集的时间跨度有区别，但是求取准确性指标的平均值时未纳入考虑
+<div style="text-align: center;">
+    <img alt="" src="images/walk.png" width="60%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 9.2</b> 其中一个步行数据集上的预测点与实际定位点
+    <br />
+    <br />
+</div>
 
 在 17 个收集的骑行或跑步数据集上耗时 $24$ 秒完成推理，平均每个 $1.41$ 秒，各数据集准确性指标的平均值为：
 
@@ -892,7 +911,14 @@ test_case0/
 * 共 $9$ 个数据集上方位角平均误差小于 $15\degree$
 * 共 $3$ 个数据集上方位角平均误差小于 $15\degree$ 的比例大于 $90\%$
 
-跑步数据集比走路数据集的效果差得多，但令人惊讶的是骑车数据集的预测效果要好于走路，因为骑行时难以判断步频。这可能是因为骑车时手机方向较为稳定。
+<div style="text-align: center;">
+    <img alt="" src="images/ride.png" width="60%" style="margin: 0 auto;" />
+</div>
+<div style="text-align: center; font-size: small">
+    <b>Figure 9.3</b> 其中一个骑行数据集上的预测点与实际定位点
+    <br />
+    <br />
+</div>
 
 
 ## 十、小组分工
