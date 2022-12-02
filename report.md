@@ -102,13 +102,6 @@ h2, h3 {
 
 输出也是 CSV 格式。输出文件 `Location_output.csv` 的前 10% 将复制 `Location_input.csv` ，并填充其后 90% 的经纬度和方位角。
 
-**文档要求：**
-
-- **统一使用中文标点符号；**
-- **中文和英文之间要隔一个空格；**
-- **每一个段落空一行。**
-- **图片统一保存在 `./images` 文件夹下**
-
 
 ## 二、数据收集与处理
 
@@ -141,8 +134,6 @@ h2, h3 {
 
 ### 3.1 前期思考
 
-（方盛俊）
-
 经过分析，我们发现 PDR 算法的关键只有两点：
 
 1. 如何预测出任给一个时间点的已走过的 **路程**。
@@ -166,11 +157,13 @@ h2, h3 {
 根据这三个线索，我们制定了下面的 PDR 算法思路。
 
 
-### 3.2 二级标题
+### 3.2 实现思路
 
-### 3.1.1 三级标题
+总体思路为步伐检测和方向预测。
 
-总体思路为步伐检测和方向预测。（任圣杰、方盛俊)
+我们需要在通过传感器得来的数据判断当前行人是否在行走，什么时侯迈出步子，行走的步幅大小为多少，前进的方向又是多少。
+
+在知道上面这些问题的答案后，我们便可以通过下面的公式来预测出行走的坐标点轨迹了。
 
 公式：
 
@@ -183,8 +176,7 @@ $$
 \end{equation}
 $$
 
-模型使用的算法没有限制，可以自行选择自己认为合理的算法。比如，可以直接把这个任务看成一个线性或者非线性的回归问题，也可以将此任务看成一个时间序列预测的问题，或者训练模型分别预测移动方向和移动速度，从而计算出当前位置，亦或利用强化学习解决这个问题等。但需要在实验报告中体现出该方法的合理性。
-
+($X$，$Y$) 为经纬度坐标点，$L_{k-1,k}$ 第$k-1$ 步的步幅，$\theta_{k-1, k}$ 为第 $k-1$ 步的方向。
 
 ## 四、数据预处理
 
@@ -342,6 +334,12 @@ t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
 
 ### 5.1 脚步提取
 
+需要的数据有：
+
+- **a_mag**（Accelerometer）：通过对加速度的数据求模得出一条震荡曲线；
+- **GPS 位置中前 10% 的前进方向数据**（Location_input）：我们可以通过前 10% 的前进方向数据。
+
+
 手机在行人行走时会产生周期性晃动，加速度计数据可以反映步数特征。设备姿态的变化会影响三个轴上的加速度值，为了避免这种影响，选择加速度`a_mag`的大小作为阶跃检测的标准。
 
 $$
@@ -423,9 +421,86 @@ filtered_a = filter(10,new_test_case.a_mag)
     <br />
 </div>
 
+处理这个问题的方式是通过相距的两个点间的距离，除以这两坐标点间的脚步数，作为这两点间脚步的步幅。这里我们设定一个超参数 `distance_frac_step`，作为这两个坐标点间一共有包含多少坐标点，具体：
 
+$$
+\text{step\_length} = \frac{\text{distance}(d_i,d_j)}{\text{steps}(d_i,d_j)} \\
+j-i = \text{distance\_frac\_step}
+$$
 
-尝试使用了哪些方法，为什么使用这些方法，方法的效果怎么样，如果效果不好，可能的原因时什么，如何解决这些问题。以及在迁移场景的完成情况。（任圣杰）
+综上，解决了一定范围内步幅的标定。
+
+#### 5.21 通过 步频 与 加速度震荡方差 构建线性回归
+
+步幅本身因人而异，它是一个与行人有关的变量。然而对于同一行人，步幅长短主要与行人的步频 $\text{f}$ 与 每一步的跨度 $\sigma$ 有关（这里的跨度用加速度震荡方差表示）。下面用线性模型 [2] 表示：
+
+$$
+\text{L} = A · \text{f} + B · σ + C
+$$
+
+步频$\text{f}$ 与 加速度震荡方差 $\sigma$ 均通过 上述处理获得。
+
+#### 5.22 初始干扰数据的消除
+
+在使用线性回归模型表示时，发现前几秒提供的数据位置变化较大，对线性回归模型影响非常明显。
+
+这里提供 超参数 `clean_data` ，用来表示前 10% 的数据中被消除的可能干扰数据个数。
+
+#### 5.23 多学习器的综合
+
+通过尝试线性回归模型，发现预测结果很不稳定，所以希望在其他的学习器下进行尝试。
+
+得益于包装完善的学习器包，我们尝试了如下学习器：
+```python
+def try_model(model: str):
+
+    if model == 'DecisionTree':
+        #### 3.1决策树回归####
+        from sklearn import tree
+        model_output = tree.DecisionTreeRegressor()
+    #### 3.2线性回归####
+    elif model == 'Linear':
+        from sklearn import linear_model
+        model_output = linear_model.LinearRegression()
+    #### 3.3SVM回归####
+    elif model == 'SVR':
+        from sklearn import svm
+        model_output = svm.SVR()
+    #### 3.4KNN回归####
+    elif model == 'KNeighbors':
+        from sklearn import neighbors
+        model_output = neighbors.KNeighborsRegressor()
+    #### 3.5随机森林回归####
+    elif model == 'RandomForest':
+        from sklearn import ensemble
+        model_output = ensemble.RandomForestRegressor(
+            n_estimators=20)  # 这里使用20个决策树
+    #### 3.6Adaboost回归####
+    elif model == 'AdaBoost':
+        from sklearn import ensemble
+        model_output = ensemble.AdaBoostRegressor(
+            n_estimators=50)  # 这里使用50个决策树
+    #### 3.7GBRT回归####
+    elif model == 'GradientBoosting':
+        from sklearn import ensemble
+        model_output = ensemble.GradientBoostingRegressor(
+            n_estimators=100)  # 这里使用100个决策树
+    #### 3.8Bagging回归####
+    elif model == 'Bagging':
+        from sklearn.ensemble import BaggingRegressor
+        model_output = BaggingRegressor()
+    #### 3.9ExtraTree极端随机树回归####
+    elif model == 'ExtraTree':
+        from sklearn.tree import ExtraTreeRegressor
+        model_output = ExtraTreeRegressor()
+    else:
+        raise Exception('No such model.')
+
+    return model_output
+```
+
+其中包含了 线性回归模型。
+最后的预测效果将结合 方向预测一起给出。
 
 ## 六、方向预测
 
@@ -655,7 +730,18 @@ def get_rotation_matrix(a, b):
 
 ### 7.1 统合步伐预测和角度预测
 
-如何合并以上的代码（任圣杰）
+在拥有前百分之十的训练数据下，我们可以通过 `step_predictor` 和 `direction_predictor` 训练出可以通过后百分之九十 传感器数据 来预测 步伐 和
+前进方向。
+$$
+\begin{equation}
+    \begin{cases}
+        X_k = X_{k-1} + L_{k-1,k} \cdot \sin \theta_{k-1,k} \\
+        Y_k = Y_{k-1} + L_{k-1,k} \cdot \cos \theta_{k-1,k} \\
+    \end{cases}
+\end{equation}
+$$
+
+前百分之十的数据保留原始数据，然后从最后一个坐标开始，每检测到走一步，便通过上述式（11）进行一次坐标点更新，知道没有步子为止。最后返回 (time,x,y) 的(n,3)矩阵。
 
 ### 7.2 线性插值获取最终预测结果
 
@@ -698,7 +784,42 @@ conda env create -f environment.yml
 
 ### 8.2 代码结构
 
-代码结构。（方盛俊）
+代码结构如下：
+
+```text
+│  batch_test.py: 批次测试, 用于对所有测试集进行测试
+│
+│  dataloader.py: 加载样例以及进行数据预处理的核心代码, 输出 TestCase 对象
+│
+│  direction_predictor.py: 前进方向预测的代码
+│
+│  environment.yml: 环境搭建的配置文件
+│
+│  merge_direction_step.py: 将前进方向和步伐预测结合的代码
+│
+│  pdr.py: 最后通过线性插值, 将最后预测结果整合的代码
+│
+│  README.md: 项目介绍
+│
+│  report.md: 项目报告的源文件
+│
+│  step_predictor.py: 步伐预测相关的代码
+│
+│  *.ipynb: 以 .ipynb 为后缀的文件, 均是我们用于打草稿和试验的代码文件
+│
+│  test.py: 作业自带的测试代码, 可以对一个样例进行性能测试
+│
+│  高级机器学习作业.pdf: 作业要求文档
+│
+├─images: 文档图片
+│
+├─test_case0: 第 test_case0 测试样例
+│
+├─../Dataset-of-Pedestrian-Dead-Reckoning: 我们自己录制的数据集
+│
+├─../TestSet: 提供的测试集
+```
+
 
 ### 8.3 运行代码
 
@@ -772,3 +893,6 @@ test_case0/
 
 1. Wang, Boyuan, Xuelin Liu, Baoguo Yu, Ruicai Jia, and Xingli Gan. 2018. "Pedestrian Dead Reckoning Based on Motion Mode Recognition Using a Smartphone" Sensors 18, no. 6: 1811. https://doi.org/10.3390/s18061811
 
+2. Ladetto, Q. On foot navigation: Continuous step calibration using both complementary recursive prediction
+and adaptive kalman filtering. In Proceedings of the 13th International Technical Meeting of the Satellite
+Division of the Institute of Navigation, Salt Lake City, UT, USA, 19–22 September 2000; pp. 1735–1740.

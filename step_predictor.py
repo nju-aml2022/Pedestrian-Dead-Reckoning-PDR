@@ -106,7 +106,7 @@ def step_process_regression(test_data: TestCase, model_str, write=False, distanc
              test_data.time[real_peak[last_step_index]])
         # print(f)
         sigma = np.var(
-            filtered_a[real_peak[last_step_index]:real_peak[step_index+1]])
+            filtered_a[real_peak[last_step_index]:real_peak[step_index]])
         # print(sigma)
         x.append([f, sigma])
 
