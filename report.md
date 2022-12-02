@@ -102,13 +102,6 @@ h2, h3 {
 
 输出也是 CSV 格式。输出文件 `Location_output.csv` 的前 10% 将复制 `Location_input.csv` ，并填充其后 90% 的经纬度和方位角。
 
-**文档要求：**
-
-- **统一使用中文标点符号；**
-- **中文和英文之间要隔一个空格；**
-- **每一个段落空一行。**
-- **图片统一保存在 `./images` 文件夹下**
-
 
 ## 二、数据收集与处理
 
@@ -140,8 +133,6 @@ h2, h3 {
 ## 三、总体思路
 
 ### 3.1 前期思考
-
-（方盛俊）
 
 经过分析，我们发现 PDR 算法的关键只有两点：
 
@@ -789,7 +780,42 @@ def linear_interpolation(time, time_data, data):
 
 ### 8.2 代码结构
 
-代码结构。（方盛俊）
+代码结构如下：
+
+```text
+│  batch_test.py: 批次测试, 用于对所有测试集进行测试
+│
+│  dataloader.py: 加载样例以及进行数据预处理的核心代码, 输出 TestCase 对象
+│
+│  direction_predictor.py: 前进方向预测的代码
+│
+│  environment.yml: 环境搭建的配置文件
+│
+│  merge_direction_step.py: 将前进方向和步伐预测结合的代码
+│
+│  pdr.py: 最后通过线性插值, 将最后预测结果整合的代码
+│
+│  README.md: 项目介绍
+│
+│  report.md: 项目报告的源文件
+│
+│  step_predictor.py: 步伐预测相关的代码
+│
+│  *.ipynb: 以 .ipynb 为后缀的文件, 均是我们用于打草稿和试验的代码文件
+│
+│  test.py: 作业自带的测试代码, 可以对一个样例进行性能测试
+│
+│  高级机器学习作业.pdf: 作业要求文档
+│
+├─images: 文档图片
+│
+├─test_case0: 第 test_case0 测试样例
+│
+├─../Dataset-of-Pedestrian-Dead-Reckoning: 我们自己录制的数据集
+│
+├─../TestSet: 提供的测试集
+```
+
 
 ### 8.3 运行代码
 

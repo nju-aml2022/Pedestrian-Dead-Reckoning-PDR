@@ -9,7 +9,6 @@ dependencies:
   - matplotlib
   - pandas
   - geopy
-  - pytorch=1.10.2
   - ipykernel
   - python=3.9
   - pip
