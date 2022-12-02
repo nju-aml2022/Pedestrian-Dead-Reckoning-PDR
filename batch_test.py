@@ -11,6 +11,7 @@ from itertools import product
 
 DATA_DIR_ROOT = "../Dataset-of-Pedestrian-Dead-Reckoning/"
 WALK=["Hand-Walk", "Bag-Walk", "Pocket-Walk"]
+OTHER=["Bag-Ride","Hand-Ride","Pocket-Pace","Pocket-Ride"]
 EXCLUDE=[
     "Hand-Walk/Hand-Walk-03-015",
     "Hand-Walk/Hand-Walk-05-001",
@@ -31,11 +32,10 @@ def main():
             # get names of all directories in `dir`
             datasets += [os.path.join(dir, name) for name in os.listdir(os.path.join(DATA_DIR_ROOT, dir))]
     elif args.use == "other":
-        for dir in os.listdir(DATA_DIR_ROOT):
-            if dir not in WALK:
-                datasets += [os.path.join(dir, name) for name in os.listdir(os.path.join(DATA_DIR_ROOT, dir))]
+        for dir in OTHER:
+            datasets += [os.path.join(dir, name) for name in os.listdir(os.path.join(DATA_DIR_ROOT, dir))]
     else:
-        for dir in os.listdir(DATA_DIR_ROOT):
+        for dir in WALK+OTHER:
             datasets += [os.path.join(dir, name) for name in os.listdir(os.path.join(DATA_DIR_ROOT, dir))]
     datasets = [dataset for dataset in datasets if dataset not in EXCLUDE]
     
@@ -194,4 +194,4 @@ def test_on_TestSet():
 
 
 if __name__ == "__main__":
-    test_on_TestSet()
+    main()
