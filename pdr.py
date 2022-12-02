@@ -17,7 +17,7 @@ def linear_interpolation(time, time_data, data):
     return np.array(data_interp)
 
 
-def pdr(test_case: TestCase, model_name='ExtraTree', distance_frac_step=5, clean_data=5, optimized_mode_ratio=0.1, butter_Wn=0.005) -> None:
+def pdr(test_case: TestCase, model_name='SVR', distance_frac_step=4, clean_data=4, optimized_mode_ratio=0.95, butter_Wn=0.0035) -> None:
     '''
     :param test_case: 测试用例
     :param model_name: 回归分类器的名字, 默认 'ExtraTree' ('DecisionTree', 'Linear', 'SVR', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'Bagging', 'ExtraTree')

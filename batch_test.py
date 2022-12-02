@@ -1,5 +1,6 @@
 import os
 import argparse
+import warnings
 from pdr import pdr
 from dataloader import TestCase
 import pandas as pd
@@ -8,14 +9,21 @@ import multiprocessing as mp
 import sys
 from itertools import product
 
-DATA_DIR_ROOT = "Dataset-of-Pedestrian-Dead-Reckoning/"
+DATA_DIR_ROOT = "../Dataset-of-Pedestrian-Dead-Reckoning/"
 WALK=["Hand-Walk", "Bag-Walk", "Pocket-Walk"]
-EXCLUDE=["Hand-Walk/Hand-Walk-05-001", "Hand-Walk/Hand-Walk-05-002"]
+EXCLUDE=[
+    "Hand-Walk/Hand-Walk-03-015",
+    "Hand-Walk/Hand-Walk-05-001",
+    "Hand-Walk/Hand-Walk-05-002",
+    "Hand-Walk/Hand-Walk-15-001",
+    "Pocket-Walk/Pocket-Walk-03-010"
+]
 
 def main():
+    warnings.filterwarnings('ignore')
     parser = argparse.ArgumentParser()
     parser.add_argument("--use", type=str, default="walk", choices=["walk", "other", "all"], help="datasets to use")
-    parser.add_argument("--method", type=str, default="Mean", choices=["Mean", "DecisionTree", "Linear", "SVR", "RandomForest", "AdaBoost", "GradientBoosting", "Bagging", "ExtraTree"], help="step predictor method")
+    parser.add_argument("--method", type=str, default="SVR", choices=["Mean", "DecisionTree", "Linear", "SVR", "RandomForest", "AdaBoost", "GradientBoosting", "Bagging", "ExtraTree"], help="step predictor method")
     args = parser.parse_args()
     datasets = []
     if args.use == "walk":
@@ -39,7 +47,7 @@ def main():
     for dataset in tqdm(datasets ,desc="Testing"):
         try:
             test_case = TestCase(os.path.join(DATA_DIR_ROOT, dataset))
-            pdr(test_case, optimized_mode_ratio=0.9, butter_Wn=0.005, model_name=args.method)
+            pdr(test_case, model_name=args.method)
             dist_error.append(test_case.get_dist_error())
             dir_error.append(test_case.get_dir_error())
             dir_ratio.append(test_case.get_dir_ratio())
@@ -59,6 +67,7 @@ def main():
     print(f"Failed count: {fails}")
 
 def test_step_method():
+    warnings.filterwarnings('ignore')
     METHODS=['Mean','DecisionTree', 'Linear', 'SVR', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'Bagging', 'ExtraTree']
     datasets=[]
     for dir in WALK:
@@ -76,7 +85,7 @@ def test_step_method():
         for dataset in tqdm(datasets ,desc=method):
             try:
                 test_case = TestCase(os.path.join(DATA_DIR_ROOT, dataset))
-                pdr(test_case, optimized_mode_ratio=0.9, butter_Wn=0.005, model_name=method)
+                pdr(test_case, model_name=method)
                 _dist_error.append(test_case.get_dist_error())
                 _dir_error.append(test_case.get_dir_error())
                 _dir_ratio.append(test_case.get_dir_ratio())
@@ -109,7 +118,6 @@ def worker(_args):
 def mute():
     sys.stdout = open(os.devnull, 'w')
     sys.stderr = open(os.devnull, 'w')
-
 
 def mp_test():
     datasets = []
@@ -178,6 +186,12 @@ def mp_test():
     df = pd.DataFrame(res, columns=["dataset", "model_name", "distance_frac_step", "clean_data", "optimized_mode_ratio", "butter_Wn", "dist_error", "dir_error", "dir_ratio"])
     df.to_csv("result_mp_adjust_case0.csv", index=False)
         
+def test_on_TestSet():
+    datasets = [f"../TestSet/test{i}" for i in (1,2,3,5,6,7,8,9,10,11)]
+    for dataset in datasets:
+        test_case = TestCase(dataset)
+        pdr(test_case)
+
 
 if __name__ == "__main__":
-    mp_test()
+    test_on_TestSet()
