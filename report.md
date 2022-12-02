@@ -690,7 +690,11 @@ def linear_interpolation(time, time_data, data):
 
 ### 8.1 环境搭建
 
-如何搭建环境。（曹明隽）
+本项目使用 Python 运行时，用 conda 管理 Python 环境，环境定义在代码文件中的 `environment.yml` 中。[在计算机上安装 conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/windows.html) 后，可以执行以下命令创建运行环境：
+
+```bash
+conda env create -f environment.yml
+```
 
 ### 8.2 代码结构
 
@@ -698,11 +702,33 @@ def linear_interpolation(time, time_data, data):
 
 ### 8.3 运行代码
 
-如何运行代码。（曹明隽）
+首先准备数据集，数据集应当以类似 `test_case0` 的方式组织，且 CSV 格式与之相同：
+
+```
+test_case0/
+├── Accelerometer.csv
+├── Barometer.csv
+├── Gyroscope.csv
+├── Linear Accelerometer.csv
+├── Location_input.csv
+└── Magnetometer.csv
+```
+
+然后执行 `python main.py --dataset test_case0` ，其中 `test_case0` 为数据集目录的路径。程序会把预测结果输出到 `test_case0/Location_output.csv` 。
+
+如果目录中包含全过程位置 `Location.csv` ，将在控制台输出 `dist_error, dir_error, dir_ratio` ，增加 `--silent` 标志将阻止控制台输出。
 
 ### 8.4 执行测试
 
-如何执行测试。（曹明隽）
+在 `batch_test.py` 中提供了三种在多个数据集上进行测试的方法：
+
+1. `main` ：测试程序在默认参数下，在我们收集的 54 个数据集上的运行结果
+2. `test_step_method` ：测试程序在不同的预测步幅的算法下，在 54 个数据集上的平均结果
+3. `mp_test` ：多进程地测试程序在不同的参数组合下，在 54 个数据集上的结果（用于调参，运行时间较长）
+
+`batch_test.py` 假设我们[收集到的数据集]()放置在工作目录的 `../Dataset-of-Pedestrian-Dead-Reckoning/` 内。
+
+**等待上传数据集并填写链接**
 
 
 ## 九、性能测试
