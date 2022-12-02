@@ -39,7 +39,7 @@ h2, h3 {
 <h3>组长：方盛俊 (201300035)</h3>
 <h3>组员：任圣杰 (201300036)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;曹明隽 (201300031)</h3>
 <h3>邮箱：201300035@smail.nju.edu.cn</h3>
-<h3>时间：2022 年 11 月 30 日</h3>
+<h3>时间：2022 年 12 月 2 日</h3>
 </div>
 
 <div class="newpage"></div>
@@ -124,7 +124,9 @@ h2, h3 {
 3. 跑步，手机放在裤兜内，共 4 组
 4. 骑车，手机放在裤兜内，共 7 组
 
-收集到的数据（及代码在其上的运行结果）可以在[这里](https://box.nju.edu.cn/f/173d68b2c9b44146a46b/)获取。
+收集到的数据（及代码在其上的运行结果）可以在 [这里](https://box.nju.edu.cn/f/173d68b2c9b44146a46b/) 获取。
+
+地址为: https://box.nju.edu.cn/f/173d68b2c9b44146a46b/
 
 
 ### 2.2 数据划分
@@ -345,16 +347,18 @@ t,a_x,a_y,a_z,la_x,la_y,la_z,gs_x,gs_y,gs_z,m_x,m_y,m_z
 手机在行人行走时会产生周期性晃动，加速度计数据可以反映步数特征。设备姿态的变化会影响三个轴上的加速度值，为了避免这种影响，选择加速度`a_mag`的大小作为阶跃检测的标准。
 
 $$
-\text{a\_mag} = \sqrt{a_x^2 + a_y^2+a_z^2}
+\begin{equation}
+    \text{a\_mag} = \sqrt{a_x^2 + a_y^2+a_z^2}
+\end{equation}
 $$
 
 使用 `test_case0` 中的部分时间段内的加速度幅度作为处理示例，未经处理的数据如下：
 
 <div style="text-align: center;">
-    <img alt="" src="images/2022-12-01-20-00-32.png" width="80%" />
+    <img alt="" src="images/2022-12-01-20-00-32.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <b>Figure 5.1</b> 未经滤波的加速度 a_mag
     <br />
     <br />
 </div>
@@ -381,25 +385,25 @@ filtered_a = filter(10,new_test_case.a_mag)
 滤波效果：
 
 <div style="text-align: center;">
-    <img alt="" src="images/2022-12-01-20-25-35.png" width="80%" />
+    <img alt="" src="images/2022-12-01-20-25-35.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <b>Figure 5.2</b> 滤波后的加速度 a_mag
     <br />
     <br />
 </div>
 
 #### 5.1.2 步长间隔选择
 
-一般人的步频最大为 3 Hz ，设定0.4秒的间隔查找峰值，如果含有多个峰值，则其中含有假峰，选取波峰最大的那一个。
+一般人的步频最大为 3 Hz ，设定 0.4 秒的间隔查找峰值，如果含有多个峰值，则其中含有假峰，选取波峰最大的那一个。
 
 波峰采集效果：
 
 <div style="text-align: center;">
-    <img alt="" src="images/2022-12-01-21-04-19.png" width="80%" />
+    <img alt="" src="images/2022-12-01-21-04-19.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <b>Figure 5.3</b> 设置步长间隔后的波峰采集
     <br />
     <br />
 </div>
@@ -415,10 +419,10 @@ filtered_a = filter(10,new_test_case.a_mag)
 在预测前，我们发现并不知道行人每一步迈出的具体长度；而脚步波峰对应的时间 与 经纬度坐标的时间没有对齐，实际情况为：
 
 <div style="text-align: center;">
-    <img alt="" src="images/2022-12-01-21-42-15.png" width="80%" />
+    <img alt="" src="images/2022-12-01-21-42-15.png" width="80%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
-    <b>Figure 5.1</b> 加速度 a_mag 波动图
+    <b>Figure 5.4</b> 脚步波峰对应的时间节点与经纬度坐标对应时间节点没有对齐
     <br />
     <br />
 </div>
@@ -426,33 +430,43 @@ filtered_a = filter(10,new_test_case.a_mag)
 处理这个问题的方式是通过相距的两个点间的距离，除以这两坐标点间的脚步数，作为这两点间脚步的步幅。这里我们设定一个超参数 `distance_frac_step`，作为这两个坐标点间一共有包含多少坐标点，具体：
 
 $$
-\text{step\_length} = \frac{\text{distance}(d_i,d_j)}{\text{steps}(d_i,d_j)} \\
-j-i = \text{distance\_frac\_step}
+\begin{equation}
+    \text{step\_length} = \frac{\text{distance}(d_i,d_j)}{\text{steps}(d_i,d_j)}
+\end{equation}
+$$
+
+$$
+\begin{equation}
+    j-i = \text{distance\_frac\_step}
+\end{equation}
 $$
 
 综上，解决了一定范围内步幅的标定。
 
-#### 5.21 通过 步频 与 加速度震荡方差 构建线性回归
+#### 5.21 通过步频与加速度震荡方差构建线性回归
 
 步幅本身因人而异，它是一个与行人有关的变量。然而对于同一行人，步幅长短主要与行人的步频 $\text{f}$ 与 每一步的跨度 $\sigma$ 有关（这里的跨度用加速度震荡方差表示）。下面用线性模型 [2] 表示：
 
 $$
-\text{L} = A · \text{f} + B · σ + C
+\begin{equation}
+    \text{L} = A · \text{f} + B · σ + C
+\end{equation}
 $$
 
-步频$\text{f}$ 与 加速度震荡方差 $\sigma$ 均通过 上述处理获得。
+步频 $\text{f}$ 与加速度震荡方差 $\sigma$ 均通过上述处理获得。
 
 #### 5.22 初始干扰数据的消除
 
 在使用线性回归模型表示时，发现前几秒提供的数据位置变化较大，对线性回归模型影响非常明显。
 
-这里提供 超参数 `clean_data` ，用来表示前 10% 的数据中被消除的可能干扰数据个数。
+这里提供超参数 `clean_data`，用来表示前 10% 的数据中被消除的可能干扰数据个数。
 
 #### 5.23 多学习器的综合
 
 通过尝试线性回归模型，发现预测结果很不稳定，所以希望在其他的学习器下进行尝试。
 
 得益于包装完善的学习器包，我们尝试了如下学习器：
+
 ```python
 def try_model(model: str):
 
@@ -501,8 +515,8 @@ def try_model(model: str):
     return model_output
 ```
 
-其中包含了 线性回归模型。
-最后的预测效果将结合 方向预测一起给出。
+其中包含了线性回归模型。
+最后的预测效果将结合方向预测一起给出。
 
 ## 六、方向预测
 
@@ -813,6 +827,8 @@ conda env create -f environment.yml
 │
 │  高级机器学习作业.pdf: 作业要求文档
 │
+├─para_adjust: 超参数学习相关代码与结果
+│
 ├─images: 文档图片
 │
 ├─test_case0: 第 test_case0 测试样例
@@ -853,7 +869,7 @@ test_case0/
 2. `test_step_method` ：测试程序在不同的预测步幅的算法下，在 54 个数据集上的平均结果
 3. `mp_test` ：多进程地测试程序在不同的参数组合下，在 54 个数据集上的结果（用于调参，运行时间较长）
 
-`batch_test.py` 假设我们[收集到的数据集](https://box.nju.edu.cn/f/173d68b2c9b44146a46b/)放置在工作目录的 `../Dataset-of-Pedestrian-Dead-Reckoning/` 内。
+`batch_test.py` 假设我们 [收集到的数据集 (点此下载)](https://box.nju.edu.cn/f/173d68b2c9b44146a46b/) 放置在工作目录的 `../Dataset-of-Pedestrian-Dead-Reckoning/` 内。
 
 
 ## 九、性能测试
@@ -867,7 +883,7 @@ test_case0/
 * 方位角平均误差小于 $15\degree$ 的比例 `dir_ratio` ： $92.6\%$
 
 <div style="text-align: center;">
-    <img alt="" src="images/test_case0.png" width="60%" style="margin: 0 auto;" />
+    <img alt="" src="images/test_case0.png" width="90%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
     <b>Figure 9.1</b> test_case0 上的预测点与实际定位点
@@ -882,6 +898,9 @@ test_case0/
 
 由于没有真实 GPS 数据，无法获得准确性指标。
 
+最后的结果保存于 `Result` 文件夹或 `TestSet` 文件夹中。
+
+
 ### 9.3 在收集数据集上的运行情况
 
 > 虽然数据集的时间跨度有区别，但是求取准确性指标的平均值时未纳入考虑
@@ -895,7 +914,7 @@ test_case0/
 * 共 $3$ 个数据集上方位角平均误差小于 $15\degree$ 的比例大于 $90\%$
 
 <div style="text-align: center;">
-    <img alt="" src="images/walk.png" width="60%" style="margin: 0 auto;" />
+    <img alt="" src="images/walk.png" width="90%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
     <b>Figure 9.2</b> 其中一个步行数据集上的预测点与实际定位点
@@ -912,7 +931,7 @@ test_case0/
 * 共 $3$ 个数据集上方位角平均误差小于 $15\degree$ 的比例大于 $90\%$
 
 <div style="text-align: center;">
-    <img alt="" src="images/ride.png" width="60%" style="margin: 0 auto;" />
+    <img alt="" src="images/ride.png" width="90%" style="margin: 0 auto;" />
 </div>
 <div style="text-align: center; font-size: small">
     <b>Figure 9.3</b> 其中一个骑行数据集上的预测点与实际定位点
