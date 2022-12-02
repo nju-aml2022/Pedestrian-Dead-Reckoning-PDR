@@ -865,11 +865,12 @@ test_case0/
 
 在 `batch_test.py` 中提供了三种在多个数据集上进行测试的方法：
 
-1. `main` ：测试程序在默认参数下，在我们收集的 54 个数据集上的运行结果
+1. `collected_dataset` ：测试程序在默认参数下，在我们收集的 54 个数据集上的运行结果
 2. `test_step_method` ：测试程序在不同的预测步幅的算法下，在 54 个数据集上的平均结果
 3. `mp_test` ：多进程地测试程序在不同的参数组合下，在 54 个数据集上的结果（用于调参，运行时间较长）
+4. `test_on_TestSet` 在 `TestSet` 上运行并测量时间
 
-`batch_test.py` 假设我们 [收集到的数据集 (点此下载)](https://box.nju.edu.cn/f/173d68b2c9b44146a46b/) 放置在工作目录的 `../Dataset-of-Pedestrian-Dead-Reckoning/` 内。
+`batch_test.py` 假设我们 [收集到的数据集 (点此下载)](https://box.nju.edu.cn/f/173d68b2c9b44146a46b/) 放置在工作目录的 `../Dataset-of-Pedestrian-Dead-Reckoning/` 内，并假设测试集 `TestSet` 位于 `../`。
 
 
 ## 九、性能测试
